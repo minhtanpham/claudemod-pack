@@ -1,0 +1,9 @@
+{
+  "name": "claudemod-pack",
+  "owner": {
+    "name": "Tan Pham",
+    "url": "https://github.com/minhtanpham"
+  },
+  "description": "A pack of Claude Code mods (plugins with a hooks module) for everyday work",
+  "plugins": []
+}
