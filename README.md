@@ -4,7 +4,7 @@ A pack of [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overvi
 
 | Mod | Version | What it does |
 | --- | --- | --- |
-| _(in progress)_ | – | A to-do progress band above the prompt and a side pane with a live card per subagent. |
+| [orchestra-desk](plugins/orchestra-desk) | 0.1.0 | A to-do progress band above the prompt and a side pane with a live card per subagent. |
 
 ---
 

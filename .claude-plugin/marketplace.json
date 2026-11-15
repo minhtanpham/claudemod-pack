@@ -5,5 +5,12 @@
     "url": "https://github.com/minhtanpham"
   },
   "description": "A pack of Claude Code mods (plugins with a hooks module) for everyday work",
-  "plugins": []
+  "plugins": [
+    {
+      "name": "orchestra-desk",
+      "source": "./plugins/orchestra-desk",
+      "description": "A to-do progress band above the prompt and a side pane with a live card per subagent.",
+      "version": "0.1.0"
+    }
+  ]
 }
