@@ -2,6 +2,16 @@
 
 Before each subagent starts, **Haiku 5.5** reads its type, title and prompt and answers `{model, scope, why, edits}`: the model for *that agent* (haiku, sonnet, opus or fable), a short scope ("Read-only search", "Code edits") and a one-line reason. Two agents of one session can get different models. The mod does this in an `agent.spawn` hook, which Claude Code's subagent docs describe as replacing the per-invocation `model` parameter.
 
+
+![model-router: expanded, done](../../images/model-router/02-dark-expanded-done.png)
+![model-router: collapsed](../../images/model-router/03-dark-collapsed.png)
+
+Terminal layout (design reference):
+
+![Fable confirm](../../images/cli/03-dark-router-confirm.png)
+![Done](../../images/cli/04-dark-router-done.png)
+![Collapsed](../../images/cli/05-dark-router-collapsed.png)
+
 - **Sonnet floor.** An agent that edits code never runs below Sonnet.
 - **Fable always asks first.** Fable may go past the Opus ceiling, but only with your OK, under a **Fable needed** chip: *<agent> <why>. Haiku picked Fable 5.2 $0.43. Opus 5.5 would cost $0.22.*, answered **Use Fable 5.2**, **Use Opus 5.5 instead** or **Cancel this agent** (the spawn is denied and the row struck out). Esc cancels the agent too. With nobody to ask (`-p`), it uses Opus. `allowFable: false` stops Haiku picking Fable at all.
 - **No guessing.** If Haiku times out or answers badly, the agent keeps the session model. The mod never blocks a spawn.

@@ -9,6 +9,23 @@ A pack of [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overvi
 
 ---
 
+## Preview
+
+Design reference images (dark theme). The terminal band follows these; surface fills and animations are approximated.
+
+**orchestra-desk**
+
+![orchestra-desk: parallel subagents](images/orchestra/01-dark-parallel.png)
+![orchestra-desk: review and tests](images/orchestra/02-dark-review-and-tests.png)
+![orchestra-desk: finished](images/orchestra/03-dark-finished.png)
+
+**model-router**
+
+![model-router: expanded, done](images/model-router/02-dark-expanded-done.png)
+![model-router: collapsed](images/model-router/03-dark-collapsed.png)
+
+---
+
 ## Install
 
 You need **Claude Code 2.1.287+** in the terminal, or **2.1.286+** in the Desktop app's Code tab. In the terminal, check with `claude --version` and update with `claude update`. In the Desktop Code tab, run `/status`. Mods do not run in claude.ai chat, in cloud sessions, or in Desktop sessions under WSL.
