@@ -1,7 +1,7 @@
 {
   "name": "model-router",
   "version": "0.1.0",
-  "description": "Before each subagent starts, Haiku reads its task and picks the cheapest model that can do it; /router shows the estimated savings.",
+  "description": "Before each subagent starts, Haiku reads its task and picks the cheapest model that can do it (Sonnet at least for code edits, Fable only with your OK); a band above the prompt shows each pick and the estimated saving.",
   "author": {
     "name": "Tan Pham",
     "url": "https://github.com/minhtanpham"
@@ -11,7 +11,7 @@
     "ceiling": {
       "type": "string",
       "title": "Highest model the router may pick",
-      "description": "opus (default): every agent is judged on its own, up to Opus. sonnet: never above Sonnet. parent: never above the spawning session's own model.",
+      "description": "opus (default): every agent is judged on its own, up to Opus (Fable may pass it, with your OK). sonnet: never above Sonnet. parent: never above the spawning session's own model.",
       "options": [
         "opus",
         "sonnet",
@@ -34,8 +34,8 @@
     "allowFable": {
       "type": "boolean",
       "title": "Let Haiku pick Fable for the hardest tasks",
-      "description": "Off: the router never picks Fable. Either way, any agent about to run on Fable asks you first.",
-      "default": false
+      "description": "On (default): Haiku may pick Fable 5.2, past the Opus ceiling, and you are always asked first (Use Fable, Use Opus, or Cancel this agent). Off: the router never picks Fable.",
+      "default": true
     }
   }
 }

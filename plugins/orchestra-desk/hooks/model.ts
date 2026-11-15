@@ -213,13 +213,36 @@ export const barRuns = (
 
 const MAX_AGENTS = 30
 
-/** The sprite colors: Claude's orange for the main agent, one hue per role. */
-export const ROLE_COLOR: Record<OrchestraRole, string> = {
-  main: '#d97757',
-  explore: '#6a9bcc',
-  coder: '#cc9a56',
-  reviewer: '#c46686',
-  tester: '#8fa874',
+export type ModelKey = 'haiku' | 'sonnet' | 'opus' | 'fable'
+
+/** Color means the model: one hue per family, a light and a dark value. */
+export const MODEL_COLOR: Record<ModelKey, { light: string; dark: string }> = {
+  haiku: { light: '#2f6fa3', dark: '#6a9bcc' },
+  sonnet: { light: '#6d5fb5', dark: '#a79bd6' },
+  opus: { light: '#b23f68', dark: '#d4789a' },
+  fable: { light: '#c8643f', dark: '#d97757' },
+}
+
+const FAMILIES: readonly ModelKey[] = ['haiku', 'sonnet', 'opus', 'fable']
+
+/** The family a model id, alias or label names; Sonnet when it names none. */
+export const modelKey = (model?: string): ModelKey => {
+  const name = (model ?? '').toLowerCase()
+
+  return FAMILIES.find(one => name.includes(one)) ?? 'sonnet'
+}
+
+/** `claude-opus-4-5` or `opus` as `Opus 4.5` / `Opus`; a label stays as it is. */
+export const modelLabel = (model?: string): string => {
+  const name = (model ?? '').trim()
+  const family = FAMILIES.find(one => name.toLowerCase().includes(one))
+  if (!family) return name === '' ? 'Sonnet' : clip(name, 24)
+  const head = family[0]!.toUpperCase() + family.slice(1)
+  const rest = name.toLowerCase().slice(name.toLowerCase().indexOf(family) + family.length)
+  const version = /^[\s-]*(\d+)(?:[-.](\d)(?!\d))?/.exec(rest)
+  if (!version) return head
+
+  return `${head} ${version[1]}${version[2] ? `.${version[2]}` : ''}`
 }
 
 /** Which sprite a subagent type wears: antenna, glasses, hard hat or plain. */
@@ -376,19 +399,16 @@ export const clock = (ms: number): string => {
   return `${Math.floor(minutes / 60)}:${two(minutes % 60)}:${two(seconds % 60)}`
 }
 
-/** `850`, `24.1k`, `1.2M`. */
-export const kfmt = (count: number): string => {
-  const n = Math.max(0, Math.round(count))
-  if (n < 1000) return String(n)
-  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`
-
-  return `${(n / 1_000_000).toFixed(1)}M`
-}
+/** Always thousands: `0.9k`, `24.1k`, `1200.0k`. */
+export const kfmt = (count: number): string =>
+  `${(Math.round(Math.max(0, count) / 100) / 10).toFixed(1)}k`
 
 /** What the tokens would cost at a blended five dollars a million. */
 export const estimateCost = (tokens: number): number => tokens * 0.000005
 
-export const money = (usd: number): string => `$${usd.toFixed(2)}`
+/** Two decimals from a cent up, three below: `$0.44`, `$0.003`. */
+export const money = (usd: number): string =>
+  usd > 0 && usd < 0.01 ? `$${usd.toFixed(3)}` : `$${usd.toFixed(2)}`
 
 const baseName = (path: string): string => path.split('/').pop() || path
 
@@ -417,6 +437,9 @@ export type CardView = {
   id: string
   name: string
   role: OrchestraRole
+  /** The model label the chip shows, such as `Haiku 5.5`. */
+  model: string
+  modelKey: ModelKey
   status: OrchestraAgentStatus
   task: string
   line: string
@@ -429,6 +452,12 @@ export type CardView = {
   /** Whether it is a real subagent a transcript can open. */
   isOpenable: boolean
 }
+
+/** Agents working or finished, the main card counted: the pane's tally. */
+export const tally = (cards: readonly CardView[]): { working: number; done: number } => ({
+  working: cards.filter(one => one.status === 'running').length,
+  done: cards.filter(one => one.status === 'done').length,
+})
 
 const STATUS_WORD: Record<OrchestraAgentStatus, string> = {
   queued: 'Queued',
@@ -472,6 +501,7 @@ export const mainCard = (
   at: number,
   started: number,
   isBusy: boolean,
+  model = '',
 ): CardView => {
   const progress = progressOf(steps)
   const running = countRunning(agents)
@@ -482,12 +512,16 @@ export const mainCard = (
     id: 'main',
     name: 'Main agent',
     role: 'main',
+    model: modelLabel(model),
+    modelKey: modelKey(model),
     status: isIdle ? (isOver ? 'done' : 'stopped') : isOver ? 'done' : 'running',
     task: isOver
       ? steps.length > 0
         ? 'All steps done'
         : 'Idle'
-      : (progress.current?.active ?? progress.current?.text ?? 'Working'),
+      : (steps.find(one => one.status === 'in_progress')?.text ??
+        progress.current?.text ??
+        'Working'),
     line: isOver
       ? 'Plan complete'
       : isIdle
@@ -511,6 +545,8 @@ const subCard = (agent: OrchestraAgent, at: number): CardView => {
     id: agent.id,
     name: agent.type,
     role: agent.role,
+    model: modelLabel(agent.model),
+    modelKey: modelKey(agent.model),
     status: agent.status,
     task: agent.description,
     line:
@@ -544,8 +580,9 @@ export const buildCards = (
   at: number,
   started: number,
   isBusy: boolean,
+  model = '',
 ): CardView[] => [
-  mainCard(steps, agents, main, at, started, isBusy),
+  mainCard(steps, agents, main, at, started, isBusy, model),
   ...sortAgents(agents).map(agent => subCard(agent, at)),
 ]
 
@@ -607,6 +644,7 @@ type DemoRole = {
   id: string
   type: string
   role: OrchestraRole
+  model: string
   label: string
   description: string
   /** The seconds it starts and ends at. */
@@ -623,6 +661,7 @@ const DEMO_ROLES: readonly DemoRole[] = [
     id: 'demo-1',
     type: 'Explore',
     role: 'explore',
+    model: 'Haiku 5.5',
     label: 'Map the session code',
     description: 'Find where sessions are created',
     from: 0,
@@ -636,6 +675,7 @@ const DEMO_ROLES: readonly DemoRole[] = [
     id: 'demo-2',
     type: 'general-purpose',
     role: 'coder',
+    model: 'Sonnet 5.5',
     label: 'Write the migration',
     description: 'Write the migration for the sessions table',
     from: 2,
@@ -649,6 +689,7 @@ const DEMO_ROLES: readonly DemoRole[] = [
     id: 'demo-3',
     type: 'code-reviewer',
     role: 'reviewer',
+    model: 'Opus 5.5',
     label: 'Review the change',
     description: 'Review the diff for regressions',
     from: 10,
@@ -662,6 +703,7 @@ const DEMO_ROLES: readonly DemoRole[] = [
     id: 'demo-4',
     type: 'test-runner',
     role: 'tester',
+    model: 'Haiku 5.5',
     label: 'Run the tests',
     description: 'Run the tests',
     from: 11,
@@ -676,6 +718,9 @@ const DEMO_ROLES: readonly DemoRole[] = [
 const DEMO_LAST = { label: 'Summarize the result', from: 18, to: 21 }
 const DEMO_MAIN = { calls: 24, tokens: 24_000 }
 const DEMO_FAILED = 'Stopped: the diff was not ready to review'
+
+/** The model the demo's main agent runs on. */
+export const DEMO_MAIN_MODEL = 'Fable 5.2'
 
 export const isDemoId = (id: string): boolean => id.startsWith('demo-')
 
@@ -726,6 +771,7 @@ export const demoAgents = (
       id: one.id,
       type: one.type,
       role: one.role,
+      model: one.model,
       description: one.description,
       startedAt: t0 + one.from * 1000,
       tools: Math.floor(fill * one.calls),

@@ -11,6 +11,9 @@ import {
   demoTime,
   elapsed,
   kfmt,
+  modelKey,
+  money,
+  modelLabel,
   progressOf,
   reduceSteps,
   roleOf,
@@ -19,8 +22,11 @@ import {
   toolLabel,
 } from '../hooks/model'
 import { barSegments, barSvg, base64, mascotCells, mascotSvg } from '../hooks/mascot'
+import { bandBar, bandRow } from '../hooks/terminal'
 
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
+/** The surfaces past the terminal, which draws its own text layout. */
+const RICH = ['desktop', 'vscode', 'mobile'] as const
 
 const BAND = {
   plugin: 'orchestra-desk',
@@ -112,8 +118,12 @@ test('model: wording helpers', () => {
   expect(toolLabel('mcp__srv__search', { query: 'auth' })).toBe('search auth')
   expect(clock(14_000)).toBe('0:14')
   expect(clock(3_725_000)).toBe('1:02:05')
-  expect(kfmt(850)).toBe('850')
+  expect(kfmt(850)).toBe('0.9k')
   expect(kfmt(24_100)).toBe('24.1k')
+  expect(modelKey('claude-opus-4-5')).toBe('opus')
+  expect(modelLabel('Haiku 5.5')).toBe('Haiku 5.5')
+  expect(modelLabel('claude-opus-4-5')).toBe('Opus 4.5')
+  expect(modelLabel('haiku')).toBe('Haiku')
   expect(roleOf('Explore')).toBe('explore')
   expect(roleOf('code-reviewer')).toBe('reviewer')
   expect(roleOf('test-runner')).toBe('tester')
@@ -121,7 +131,7 @@ test('model: wording helpers', () => {
 })
 
 test('mascot: segments, base64 and the terminal cells', () => {
-  expect(barSegments(stepsFromList(TODOS)).join()).toBe('done,run,run,run,wait')
+  expect(barSegments(stepsFromList(TODOS)).join()).toBe('done,run,wait')
   expect(base64(new Uint8Array([77, 97, 110]))).toBe('TWFu')
   expect(base64(new Uint8Array([77]))).toBe('TQ==')
   // 11 × 5 cells, three little-endian words each.
@@ -140,15 +150,48 @@ test('the band shows to-do progress, on every surface', async ($, on) => {
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   await $.tool.call({ tool: 'TodoWrite', todos: TODOS })
 
-  for (const surface of SURFACES) {
+  for (const surface of RICH) {
     const ui = await $.ui.mount({ ...BAND, surface })
 
-    expect((await ui.find({ type: 'Text', text: /1\/3/ }))?.text).toBe('1/3')
+    expect((await ui.find({ type: 'Text', text: /^1$/ }))?.text).toBe('1')
+    expect((await ui.find({ type: 'Text', text: /^\/3$/ }))?.text).toBe('/3')
     expect(
       (await ui.find({ type: 'Text', text: /Writing/ }))?.text,
     ).toBe('Writing the fix')
     await ui.unmount()
   }
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /^1\/3$/ }))?.text).toBe('1/3')
+  expect((await ui.find({ type: 'Text', text: /Writing/ }))?.text).toBe('Writing the fix')
+  expect((await ui.find({ type: 'Text', text: /working ·/ }))?.text).toMatch(
+    /^1 working · 0\.0k · \$0\.00 · 0:00$/,
+  )
+  await ui.unmount()
+})
+
+test('terminal band: one row that fits, thin segments, truncated step', () => {
+  const steps = stepsFromList(TODOS)
+  const band = {
+    done: 1,
+    total: 3,
+    label: 'Writing the fix for the session storage +1',
+    isFinished: false,
+    working: 3,
+    tokens: 88_700,
+    cost: 0.44,
+    elapsedMs: 12_000,
+  }
+  const text = (segs: { t: string }[]) => segs.map(s => s.t).join('')
+
+  expect(text(bandBar(steps))).toBe('━━━━ ━━── ────')
+  const wide = text(bandRow(band, steps, 92))
+  expect(wide).toBe('○ 1/3  Writing the fix f… ━━━━ ━━── ────  3 working · 88.7k · $0.44 · 0:12')
+  for (const columns of [92, 60, 40, 24, 14]) {
+    expect(text(bandRow(band, steps, columns)).length).toBeLessThanOrEqual(columns)
+  }
+  expect(money(0.0031)).toBe('$0.003')
+  expect(money(0.44)).toBe('$0.44')
 })
 
 test('the band stays out of the way with nothing to show', async ($, on) => {
@@ -177,7 +220,8 @@ test('a subagent to-do list does not replace the main one', async ($, on) => {
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
 
-  expect((await ui.find({ type: 'Text', text: /\/3/ }))?.text).toBe('1/3')
+  expect((await ui.find({ type: 'Text', text: /^\/3$/ }))?.text).toBe('/3')
+  expect((await ui.find({ type: 'Text', text: /^1$/ }))?.text).toBe('1')
   await ui.unmount()
 })
 
@@ -203,7 +247,14 @@ test('the pane has a live card per subagent, on every surface', async ($, on) =>
   await $.tool.call({ tool: 'Bash', command: 'rg session', agentId: 'a1' })
   await $.tool.call({ tool: 'Read', file_path: '/src/auth.ts', agentId: 'a1' })
 
-  for (const surface of SURFACES) {
+  const term = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await term.find({ type: 'Text', text: /Explore/ }))?.text).toBe('Explore')
+  expect((await term.find({ type: 'Text', text: /auth\.ts/ }))?.text).toBe('Read auth.ts')
+  expect((await term.find({ type: 'Text', text: /tok$/ }))?.text).toMatch(/k tok$/)
+  expect(await term.find({ type: 'Text', text: /2 working/ })).toBeDefined()
+  await term.unmount()
+
+  for (const surface of RICH) {
     const ui = await $.ui.mount({ ...PANE, surface })
 
     expect((await ui.find({ type: 'Text', text: /Explore/ }))?.text).toBe('Explore')
@@ -211,12 +262,12 @@ test('the pane has a live card per subagent, on every surface', async ($, on) =>
       (await ui.find({ type: 'Text', text: /Find auth/ }))?.text,
     ).toBe('Find auth middleware')
     expect((await ui.find({ type: 'Text', text: /auth\.ts/ }))?.text).toBe(
-      '↳ Read auth.ts',
+      '» Read auth.ts',
     )
     expect(
       (await ui.find({ type: 'Text', text: /2 calls/ }))?.text,
     ).toBe('2 calls')
-    expect(await ui.find({ type: 'Text', text: /1 running/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /2 working/ })).toBeDefined()
     await ui.unmount()
   }
 
@@ -235,10 +286,7 @@ test('the pane has a live card per subagent, on every surface', async ($, on) =>
   expect((await ui.find({ type: 'Text', text: /Found it/ }))?.text).toBe(
     '» Found it in src/auth.ts',
   )
-  expect(await ui.find({ type: 'Text', text: /1 finished/ })).toBeDefined()
-
-  await ui.press({ key: 'clear' })
-  expect(await ui.find({ type: 'Text', text: /Found it/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /2 done/ })).toBeDefined()
   await ui.unmount()
 })
 
@@ -288,12 +336,18 @@ test('/orchestra demo plays with no model call, then clears', async ($, on) => {
   await clockMock.advance(12_000)
   for (const surface of SURFACES) {
     const band = await $.ui.mount({ ...BAND, surface })
-    expect((await band.find({ type: 'Text', text: /\/5/ }))?.text).toBe('2/5')
-    expect(await band.find({ type: 'Button', text: /3 working/ })).toBeDefined()
+    if (surface === 'terminal') {
+      expect((await band.find({ type: 'Text', text: /^2\/5$/ }))?.text).toBe('2/5')
+      expect(await band.find({ type: 'Text', text: /^3 working · / })).toBeDefined()
+    } else {
+      expect((await band.find({ type: 'Text', text: /^2$/ }))?.text).toBe('2')
+      expect((await band.find({ type: 'Text', text: /^\/5$/ }))?.text).toBe('/5')
+      expect(await band.find({ type: 'Button', text: /3 working/ })).toBeDefined()
+    }
     await band.unmount()
 
     const pane = await $.ui.mount({ ...PANE, surface })
-    expect(await pane.find({ type: 'Text', text: /2 running/ })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: /3 working/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /Main agent/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /code-reviewer/ })).toBeDefined()
     await pane.unmount()
@@ -301,7 +355,7 @@ test('/orchestra demo plays with no model call, then clears', async ($, on) => {
 
   await clockMock.advance(20_000)
   const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  expect(await pane.find({ type: 'Text', text: /4 finished/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /5 done/ })).toBeDefined()
   expect((await pane.find({ type: 'Text', text: /5\/5/ }))?.text).toBe('5/5')
   await pane.unmount()
 
@@ -322,7 +376,7 @@ test('/orchestra demo fail ends with a failed card', async ($, on) => {
   await clockMock.advance(25_000)
 
   const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  expect(await pane.find({ type: 'Text', text: /^Failed$/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /Stopped: the diff/ })).toBeDefined()
   await pane.unmount()
 })
 
@@ -346,7 +400,7 @@ test('a finished turn stops "working", and a new prompt clears the old plan', as
   })
   band = await $.ui.mount({ ...BAND, surface: 'desktop' })
   expect(await band.find({ type: 'Button', text: /working/ })).toBeUndefined()
-  expect((await band.find({ type: 'Text', text: /1\/3/ }))?.text).toBe('1/3')
+  expect((await band.find({ type: 'Text', text: /^\/3$/ }))?.text).toBe('/3')
   await band.unmount()
 
   await $.prompt.submit({ text: 'something else', wait: false, origin: { kind: 'composer' } })
@@ -356,12 +410,12 @@ test('a finished turn stops "working", and a new prompt clears the old plan', as
 })
 
 test('the sprites follow the surface\'s light or dark mode', () => {
-  const queued = mascotSvg('reviewer', 'queued', '#6a9bcc', 30)
+  const queued = mascotSvg('reviewer', 'queued', 'haiku', 30)
   expect(queued).toContain('prefers-color-scheme:dark')
   // The neutral parts are classes the media query swaps, not a fixed dark hex.
   expect(queued).toContain('class="sleep"')
-  expect(queued).toContain('class="accS"')
-  expect(barSvg(['done', 'run', 'wait'], 120)).toContain('prefers-color-scheme:dark')
+  expect(queued).toContain('.m-haiku')
+  expect(barSvg(stepsFromList(TODOS), 120)).toContain('prefers-color-scheme:dark')
   // The terminal's cells use mid tones: no near-white or near-black accessory.
   expect(mascotCells('explore', 'queued', '#d97757', 0).length).toBeGreaterThan(0)
 })

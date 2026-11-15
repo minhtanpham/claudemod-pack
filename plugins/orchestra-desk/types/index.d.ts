@@ -33,6 +33,8 @@ export type OrchestraAgent = {
   type: string
   role: OrchestraRole
   description: string
+  /** The model it was spawned on (an id or alias, or a demo label). */
+  model?: string
   status: OrchestraAgentStatus
   startedAt: number
   endedAt?: number
