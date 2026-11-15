@@ -5,6 +5,7 @@ import { mascotSvg, TIER_KEY } from '../hooks/look'
 import {
   capTier,
   classifyPrompt,
+  demoView,
   cost,
   effective,
   fableWarning,
@@ -138,4 +139,25 @@ test('the band shows the saving on every surface once an agent is routed', async
     expect((await ui.find({ type: 'Text', text: /saved/ }))?.text).toMatch(/saved$/)
     await ui.unmount()
   }
+})
+
+test('the demo walks five agents to a routed list with no model call', () => {
+  expect(demoView(0).reviewing).toBe('Explore')
+  expect(demoView(14).waiting).toBe('schema-architect')
+  const done = demoView(22)
+  expect(done.entries.map(x => x.chosen)).toEqual(['haiku', 'sonnet', 'opus', 'haiku', 'opus'])
+  expect(totals(done.entries, { calls: 0, inTok: 0, outTok: 0, failed: 0 }).saved).toBeGreaterThan(0)
+})
+
+test('/router demo starts the band and /router reset stops it', async ($, on) => {
+  setup(on, '{"model":"haiku","why":"x"}')
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const r = await $.command.run({ command: 'router', args: 'demo' } as any)
+  expect((r as any).text).toMatch(/demo started/)
+  const ui = await $.ui.mount({
+    plugin: 'model-router', component: 'AbovePrompt', surface: 'terminal',
+    props: { hasSurvey: false, isCollapsed: false, isWorking: true, maxRows: 3, bodyColumns: 100, scroll: { offset: 0, bodyRows: 3 }, view: {} },
+  } as any)
+  expect((await ui.find({ type: 'Text', text: /Reviewing/ }))?.text).toMatch(/Explore/)
+  await ui.unmount()
 })

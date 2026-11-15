@@ -4,6 +4,8 @@ import type { Register } from 'claude-code'
 import type { RouterEntry, RouterOverhead } from '../types'
 import {
   ASSUMED,
+  DEMO_SECONDS,
+  demoView,
   capTier,
   classifyPrompt,
   effective,
@@ -42,6 +44,7 @@ const reviewing = atom({ plugin: 'model-router', key: 'reviewing' } as const, ''
 const waiting = atom({ plugin: 'model-router', key: 'waiting' } as const, '', {
   shape: 'waiting-1',
 })
+const demo = atom({ plugin: 'model-router', key: 'demo' } as const, -1, { shape: 'demo-1' })
 const now = atom({ plugin: 'model-router', key: 'now' } as const, 0, { shape: 'now-1' })
 
 const clipText = (text: string, n: number): string =>
@@ -66,14 +69,22 @@ export const register: Register = (on, options) => {
     await $.command.register({
       name: 'router',
       description:
-        'Model router: "status" shows the estimated savings, "off" / "on" pauses it, "reset" clears the tally',
+        'Model router: "demo" plays a sample with no model call, "status" shows the estimated savings, "off" / "on" pauses it, "reset" clears the tally',
     })
 
     // The spinner only moves while the router is deciding.
     $.clock.every(500, async () => {
       try {
-        if ((await read($, reviewing)) !== '' || (await read($, waiting)) !== '') {
-          const at = await $.clock.now()
+        const began = await read($, demo)
+        const at = await $.clock.now()
+        if (began >= 0 && at - began > DEMO_SECONDS * 1000) {
+          await update($, demo, () => -1)
+        }
+        if (
+          began >= 0 ||
+          (await read($, reviewing)) !== '' ||
+          (await read($, waiting)) !== ''
+        ) {
           await update($, now, () => at)
         }
       } catch {
@@ -224,9 +235,16 @@ export const register: Register = (on, options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
-    const list = await read($, ledger)
-    const review = await read($, reviewing)
-    const wait = await read($, waiting)
+    let list = await read($, ledger)
+    let review = await read($, reviewing)
+    let wait = await read($, waiting)
+    const began = await read($, demo)
+    if (began >= 0) {
+      const v = demoView(((await read($, now)) - began) / 1000)
+      list = v.entries
+      review = v.reviewing
+      wait = v.waiting
+    }
     if (list.length === 0 && review === '' && wait === '') return next(e)
 
     const T = $.ui.resolve(e)
@@ -340,7 +358,15 @@ export const register: Register = (on, options) => {
 
       return { text: `model-router ${word}.` }
     }
+    if (word === 'demo') {
+      const at = await $.clock.now()
+      await update($, now, () => at)
+      await update($, demo, () => at)
+
+      return { text: `model-router demo started: five sample agents, about ${DEMO_SECONDS} seconds, no model call.` }
+    }
     if (word === 'reset') {
+      await update($, demo, () => -1)
       await update($, ledger, () => [])
       await update($, overhead, () => ({ calls: 0, inTok: 0, outTok: 0, failed: 0 }))
       $.ui.status(undefined)

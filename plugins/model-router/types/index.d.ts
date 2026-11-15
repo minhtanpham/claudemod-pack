@@ -35,6 +35,8 @@ declare module 'claude-code' {
       reviewing: Shaped<string>
       /** The agent waiting for the person's OK on Fable; empty when none. */
       waiting: Shaped<string>
+      /** When `/router demo` began (ms); -1 when none plays. */
+      demo: Shaped<number>
       /** Wall clock in ms, ticked while the router is deciding (for the spinner). */
       now: Shaped<number>
     }

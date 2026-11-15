@@ -187,3 +187,52 @@ export function report(t: Totals, o: RouterOverhead, isOff: boolean): string {
     .filter(Boolean)
     .join('\n')
 }
+
+// ----------------------------------------------------------------- demo --
+
+export const DEMO_SECONDS = 24
+
+const DEMO_AGENTS: readonly { type: string; tier: Tier; tok: number; why: string }[] = [
+  { type: 'Explore', tier: 'haiku', tok: 18_000, why: 'read-only search, the cheapest model is enough' },
+  { type: 'general-purpose', tier: 'sonnet', tok: 46_000, why: 'writes SQL that must run, Sonnet is the floor' },
+  { type: 'code-reviewer', tier: 'opus', tok: 22_000, why: 'holds 3 changed files in mind' },
+  { type: 'test-runner', tier: 'haiku', tok: 15_000, why: 'mechanical, run and summarize' },
+  { type: 'schema-architect', tier: 'fable', tok: 30_000, why: 'cross-service design, Fable declined' },
+]
+
+/** What the band shows `t` seconds into `/router demo`: no model is called. */
+export function demoView(t: number): {
+  entries: RouterEntry[]
+  reviewing: string
+  waiting: string
+} {
+  const entries: RouterEntry[] = []
+  let reviewing = ''
+  let waiting = ''
+  DEMO_AGENTS.forEach((a, i) => {
+    const start = i * 3
+    const last = i === DEMO_AGENTS.length - 1
+    if (t < start) return
+    if (t < start + 2) {
+      reviewing = a.type
+      return
+    }
+    if (last && t < start + 7) {
+      waiting = a.type
+      return
+    }
+    entries.push({
+      id: `demo:${i}`,
+      type: a.type,
+      chosen: last ? 'opus' : a.tier,
+      baseline: 'fable',
+      why: a.why,
+      isHaiku: true,
+      inTok: a.tok * 0.85,
+      outTok: a.tok * 0.15,
+      isMeasured: true,
+    })
+  })
+
+  return { entries, reviewing, waiting }
+}
