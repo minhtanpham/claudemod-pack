@@ -4,13 +4,21 @@ import {
   advanceSteps,
   applyPlan,
   barRuns,
+  clock,
+  demoAgents,
+  demoMain,
+  demoSteps,
+  demoTime,
   elapsed,
+  kfmt,
   progressOf,
   reduceSteps,
+  roleOf,
   stepsFromList,
   stepTool,
   toolLabel,
 } from '../hooks/model'
+import { barSegments, base64, mascotCells } from '../hooks/mascot'
 
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
 
@@ -102,6 +110,23 @@ test('model: wording helpers', () => {
   expect(elapsed(3_725_000)).toBe('1h 02m')
   expect(toolLabel('Read', { file_path: '/a/b/model.ts' })).toBe('Read model.ts')
   expect(toolLabel('mcp__srv__search', { query: 'auth' })).toBe('search auth')
+  expect(clock(14_000)).toBe('0:14')
+  expect(clock(3_725_000)).toBe('1:02:05')
+  expect(kfmt(850)).toBe('850')
+  expect(kfmt(24_100)).toBe('24.1k')
+  expect(roleOf('Explore')).toBe('explore')
+  expect(roleOf('code-reviewer')).toBe('reviewer')
+  expect(roleOf('test-runner')).toBe('tester')
+  expect(roleOf('general-purpose')).toBe('coder')
+})
+
+test('mascot: segments, base64 and the terminal cells', () => {
+  expect(barSegments(stepsFromList(TODOS)).join()).toBe('done,run,run,run,wait')
+  expect(base64(new Uint8Array([77, 97, 110]))).toBe('TWFu')
+  expect(base64(new Uint8Array([77]))).toBe('TQ==')
+  // 11 × 5 cells, three little-endian words each.
+  const cells = mascotCells('explore', 'running', '#6a9bcc', 0)
+  expect(cells.length).toBe(Math.ceil((11 * 5 * 12) / 3) * 4)
 })
 
 // ---------------------------------------------------------------- band --
@@ -189,8 +214,8 @@ test('the pane has a live card per subagent, on every surface', async ($, on) =>
       '↳ Read auth.ts',
     )
     expect(
-      (await ui.find({ type: 'Text', text: /tool call/ }))?.text,
-    ).toBe('2 tool calls')
+      (await ui.find({ type: 'Text', text: /2 calls/ }))?.text,
+    ).toBe('2 calls')
     expect(await ui.find({ type: 'Text', text: /1 running/ })).toBeDefined()
     await ui.unmount()
   }
@@ -213,7 +238,7 @@ test('the pane has a live card per subagent, on every surface', async ($, on) =>
   expect(await ui.find({ type: 'Text', text: /1 finished/ })).toBeDefined()
 
   await ui.press({ key: 'clear' })
-  expect(await ui.find({ type: 'Text', text: /No subagents yet/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Found it/ })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -226,4 +251,77 @@ test('cards an earlier version stored are declined', async ($, on) => {
 
   expect(await ui.find({ type: 'Text', text: /No subagents yet/ })).toBeDefined()
   await ui.unmount()
+})
+
+// ---------------------------------------------------------------- demo --
+
+const COMMAND = {
+  command: 'orchestra',
+  origin: { kind: 'composer' },
+  presentation: { isFullscreen: false, columns: 80 },
+} as const
+
+test('model: the demo runs from a first card to a finished plan', () => {
+  expect(demoTime(1_000, 1_000)).toBe(0)
+  expect(demoTime(1_000, 8_500)).toBe(7.5)
+  expect(demoTime(1_000, 999_000)).toBe(21)
+
+  expect(demoAgents(0, 0).map(one => one.status).join()).toBe('running,queued,queued,queued')
+  expect(demoAgents(12, 0).filter(one => one.status === 'running').length).toBe(2)
+  expect(demoAgents(21, 0).map(one => one.status).join()).toBe('done,done,done,done')
+  expect(demoAgents(21, 0, true).map(one => one.status).join()).toBe('done,done,failed,done')
+  expect(progressOf(demoSteps(0)).done).toBe(0)
+  expect(progressOf(demoSteps(21)).isFinished).toBe(true)
+  expect(demoMain(21).tokens).toBe(24_000)
+})
+
+test('/orchestra demo plays with no model call, then clears', async ($, on) => {
+  on('command.register', () => ({ value: { command: 'orchestra' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const clockMock = mock.clock(on)
+
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const ran = await $.command.run({ ...COMMAND, args: 'demo' })
+  expect(ran.text).toMatch(/demo started/)
+
+  await clockMock.advance(12_000)
+  for (const surface of SURFACES) {
+    const band = await $.ui.mount({ ...BAND, surface })
+    expect((await band.find({ type: 'Text', text: /\/5/ }))?.text).toBe('2/5')
+    expect(await band.find({ type: 'Button', text: /3 working/ })).toBeDefined()
+    await band.unmount()
+
+    const pane = await $.ui.mount({ ...PANE, surface })
+    expect(await pane.find({ type: 'Text', text: /2 running/ })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: /Main agent/ })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: /code-reviewer/ })).toBeDefined()
+    await pane.unmount()
+  }
+
+  await clockMock.advance(20_000)
+  const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await pane.find({ type: 'Text', text: /4 finished/ })).toBeDefined()
+  expect((await pane.find({ type: 'Text', text: /5\/5/ }))?.text).toBe('5/5')
+  await pane.unmount()
+
+  await $.command.run({ ...COMMAND, args: 'clear' })
+  const empty = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await empty.find({ type: 'Button', text: /Play a demo/ })).toBeDefined()
+  await empty.unmount()
+})
+
+test('/orchestra demo fail ends with a failed card', async ($, on) => {
+  on('command.register', () => ({ value: { command: 'orchestra' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const clockMock = mock.clock(on)
+
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.command.run({ ...COMMAND, args: 'demo fail' })
+  await clockMock.advance(25_000)
+
+  const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await pane.find({ type: 'Text', text: /^Failed$/ })).toBeDefined()
+  await pane.unmount()
 })

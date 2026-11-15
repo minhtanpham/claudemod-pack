@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orchestra Desk, live</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif}
+button{font-family:inherit;cursor:pointer}
+.mascot .legB{opacity:0}
+.mascot.running .legA{animation:legA .5s steps(1) infinite}
+.mascot.running .legB{animation:legB .5s steps(1) infinite}
+.mascot.running .bob{animation:bob .5s steps(1) infinite}
+.mascot.running .eye{animation:blink 3.2s infinite;transform-box:fill-box;transform-origin:center}
+.mascot.queued .zz{animation:zz 1.6s steps(1) infinite}
+@keyframes legA{0%{opacity:1}50%{opacity:0}}
+@keyframes legB{0%{opacity:0}50%{opacity:1}}
+@keyframes bob{0%{transform:translateY(0)}50%{transform:translateY(-1px)}}
+@keyframes blink{0%,90%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes zz{0%{opacity:1}50%{opacity:.25}}
+.stripe{background-size:22px 22px;animation:stripes .9s linear infinite}
+@keyframes stripes{to{background-position:22px 0}}
+.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.band{animation:slideUp .5s ease-out both}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.card{animation:cardIn .45s ease-out both}
+@keyframes cardIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+.card.run{animation:cardIn .45s ease-out both,glow 2s ease-in-out infinite .5s}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 0%,transparent)}50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 22%,transparent)}}
+.live{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.indet-unused{position:absolute;left:0;top:0;height:100%;width:35%;background:var(--acc);border-radius:2px;animation:slide 1.3s ease-in-out infinite}
+@keyframes slide{0%{left:-35%}100%{left:100%}}
+.cursor{animation:pulse 1s steps(1) infinite}
+</style>
+</helmet>
+<div style="--acc: {{accent}}; width: 1440px; height: 860px; box-sizing: border-box; display: flex; background: #1a1918; color: #faf9f5; overflow: hidden">
+
+<main style="flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 28px 56px 20px 56px; box-sizing: border-box">
+<div style="font-size: 13px; color: #9b998f">Started on this computer · claudemod-pack · <span style="text-decoration: underline">Save as environment</span></div>
+
+<div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding-top: 36px">
+<div style="align-self: flex-end; background: #262624; border-radius: 14px; padding: 14px 22px; font-size: 18px"><span style="color: #6a9bcc">/orchestra</span> demo</div>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; max-width: 720px; color: #faf9f5">orchestra-desk: Orchestra demo started: a sample plan and four sample agents. The pane is open on the right and follows every step live.</p>
+</div>
+
+<section class="band" aria-label="Plan progress" style="background: #262624; border: 1px solid #3a3935; border-radius: 12px; padding: 9px 14px; display: flex; align-items: center; gap: 12px">
+<div style="width: 34px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center">
+<dc-import name="Mascot" color="{{accent}}" status="{{bandStatus}}" role="main" size="30" hint-size="30px,25px"></dc-import>
+</div>
+<div style="flex: none; display: flex; align-items: baseline; gap: 1px; font-size: 22px; font-weight: 700; line-height: 1; color: {{accent}}; font-variant-numeric: tabular-nums">{{doneCount}}<span style="font-size: 14px; color: #7d7b73">/{{total}}</span></div>
+<div style="flex: none; width: 190px; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{nowLabel}}</div>
+<div style="flex: 1; min-width: 0; display: flex; gap: 4px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+<div style="flex: 1; height: 8px; border-radius: 4px; background: #3a3935; overflow: hidden">
+<div class="{{s.stripe}}" style="height: 100%; border-radius: 4px; width: {{s.fillW}}; background-image: {{s.fillBg}}; background-color: {{accent}}; transition: width .5s linear"></div>
+</div>
+</sc-for>
+</div>
+<span style="flex: none; font-size: 12px; font-weight: 600; color: {{accent}}; background: #2e2622; border-radius: 999px; padding: 3px 9px; white-space: nowrap">{{workingLabel}}</span>
+<div style="flex: none; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.3; color: #d6d4cb; font-variant-numeric: tabular-nums; min-width: 96px"><div>{{tokensLabel}} tok</div><div style="color: #a8a69e">{{costLabel}} · {{elapsed}}</div></div>
+</section>
+
+<div style="margin-top: 14px; background: #262624; border: 1px solid #3a3935; border-radius: 16px; padding: 18px 20px; display: flex; align-items: center; gap: 12px; color: #9b998f; font-size: 16px">
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#9b998f" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+<span style="flex: 1">Type / for commands</span>
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#9b998f" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></svg>
+</div>
+<div style="margin-top: 10px; font-size: 12px; color: #7d7b73; text-align: right">Fable 5.2 · Medium · Auto</div>
+</main>
+
+<aside aria-label="Orchestra agents" style="width: 400px; flex: none; box-sizing: border-box; background: #1f1e1d; border-left: 1px solid #2e2d2b; padding: 22px 20px; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+<div style="display: flex; align-items: center; gap: 10px">
+<span class="live" style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span>
+<span style="font-size: 15px; font-weight: 700; flex: 1">Orchestra</span>
+<button aria-label="Hide panel" style="background: none; border: 0; color: #9b998f; width: 44px; height: 44px; margin: -10px -10px -10px 0; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9b998f" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>
+</div>
+
+<section aria-label="Plan">
+<div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px"><span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: {{accent}}">Plan</span><span style="font-size: 13px; font-weight: 700; color: #faf9f5; font-variant-numeric: tabular-nums">{{doneCount}}/{{total}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; background: {{s.rowBg}}">
+<sc-if value="{{s.isDone}}" hint-placeholder-val="{{ true }}"><span style="width: 16px; height: 16px; border-radius: 50%; background: {{accent}}; display: flex; align-items: center; justify-content: center"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#1a1918" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.2l2 2L8 3"/></svg></span></sc-if>
+<sc-if value="{{s.isRun}}" hint-placeholder-val="{{ false }}"><span class="spin" style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid #4a3a33; border-top-color: {{accent}}"></span></sc-if>
+<sc-if value="{{s.isQ}}" hint-placeholder-val="{{ false }}"><span style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid #4a4944"></span></sc-if>
+<span style="font-size: 14px; font-weight: {{s.labelWeight}}; color: {{s.labelColor}}">{{s.label}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="Agents" style="display: flex; flex-direction: column; gap: 10px; min-height: 0">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: {{accent}}">Agents</span><span style="font-size: 13px; color: #a8a69e">{{agentSummary}}</span></div>
+<sc-for list="{{agents}}" as="a" hint-placeholder-count="5">
+<article class="{{a.cls}}" style="position: relative; display: flex; gap: 12px; padding: 12px; border-radius: 14px; background: #262624; border: 1px solid {{a.border}}; animation-delay: {{a.delay}}; opacity: {{a.opacity}}; overflow: hidden">
+<div style="width: 64px; height: 64px; flex: none; border-radius: 10px; background: #1a1918; border: 1px solid #2e2d2b; display: flex; align-items: center; justify-content: center">
+<dc-import name="Mascot" color="{{a.color}}" status="{{a.status}}" role="{{a.role}}" size="44" hint-size="44px,36px"></dc-import>
+</div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 14px; font-weight: 700">{{a.name}}</span><span style="font-size: 11px; font-weight: 600; color: {{a.pillColor}}; background: {{a.pillBg}}; border-radius: 999px; padding: 2px 8px">{{a.statusLabel}}</span><span style="flex: 1"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a8a69e">{{a.elapsed}}</span></div>
+<div style="font-size: 13px; color: #d6d4cb">{{a.task}}</div>
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: {{a.lineColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">» {{a.line}}</div>
+<div style="display: flex; gap: 12px; font-size: 12px; color: #9b998f; white-space: nowrap"><span>{{a.tools}}</span><span>{{a.tokens}}</span><span style="text-decoration: underline">Open transcript</span></div>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: #34332f; display: {{a.barDisplay}}"><div style="height: 100%; width: {{a.progress}}; background: {{a.color}}; transition: width .5s linear"></div></div>
+</article>
+</sc-for>
+</section>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#d97757","options":["#d97757","#6a9bcc","#788c5d","#c46686"]},"autoplay":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":860}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { k: 9 };
+  }
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (this.props.autoplay === false) return;
+      this.setState((s) => ({ k: (s.k + 1) % 48 }));
+    }, 500);
+  }
+  componentWillUnmount() {
+    clearInterval(this.timer);
+  }
+  renderVals() {
+    const acc = this.props.accent || '#d97757';
+    const t = this.state.k / 2;
+    const clamp = (x) => Math.max(0, Math.min(1, x));
+    const kfmt = (n) => (n / 1000).toFixed(1) + 'k';
+    const defs = [
+      { label: 'Map the session code', name: 'Explore', role: 'explore', color: '#6a9bcc', start: 0, end: 6, calls: 4, tok: 18000, task: 'Find where sessions are created', run: 'Searching src/auth for session creation…', done: 'Sessions start in src/auth/session.ts' },
+      { label: 'Write the migration', name: 'general-purpose', role: 'coder', color: '#cc9a56', start: 2, end: 12, calls: 7, tok: 46000, task: 'Write the migration for the sessions table', run: 'Writing migrations/0042_sessions.sql…', done: 'Migration written and applied to the test database' },
+      { label: 'Review the change', name: 'code-reviewer', role: 'reviewer', color: '#c46686', start: 10, end: 15, calls: 4, tok: 22000, task: 'Review the diff for regressions', run: 'Reading the diff, 3 files changed…', done: 'No regressions found in 3 changed files' },
+      { label: 'Run the tests', name: 'test-runner', role: 'tester', color: '#8fa874', start: 11, end: 18, calls: 5, tok: 15000, task: 'Run the tests', run: 'Running 42 tests in parallel…', done: '42 passed, 0 failed' },
+      { label: 'Summarize the result', name: 'Main agent', role: 'main', color: acc, start: 18, end: 21, calls: 0, tok: 0, task: '', run: '', done: '' }
+    ];
+    const info = defs.map((d) => {
+      const f = clamp((t - d.start) / (d.end - d.start));
+      const st = t >= d.end ? 'done' : (t >= d.start ? 'running' : 'queued');
+      return Object.assign({ f, st }, d);
+    });
+    const steps = info.map((d) => {
+      const run = d.st === 'running';
+      return {
+        label: d.label,
+        isDone: d.st === 'done', isRun: run, isQ: d.st === 'queued',
+        fillW: Math.round(d.f * 100) + '%',
+        fillBg: run ? 'repeating-linear-gradient(-45deg, ' + acc + ' 0 8px, rgba(255,255,255,0.26) 8px 16px)' : 'none',
+        stripe: run ? 'stripe' : 'solid',
+        labelColor: run ? '#faf9f5' : (d.st === 'done' ? '#b5b3aa' : '#8a887f'),
+        labelWeight: run ? 700 : 500,
+        rowBg: run ? '#262624' : 'transparent'
+      };
+    });
+    const fin = t >= 21;
+    const mainF = clamp(t / 21);
+    const subs = info.slice(0, 4);
+    const runningSteps = info.filter((d) => d.st === 'running');
+    const runningSubs = subs.filter((d) => d.st === 'running');
+    const label = { running: 'Working', done: 'Done', queued: 'Queued' };
+    const cards = [{
+      name: 'Main agent', role: 'main', color: acc, status: fin ? 'done' : 'running',
+      task: fin ? 'All steps done' : runningSteps[0] ? runningSteps[0].label : 'Planning',
+      line: fin ? 'Plan complete' : (runningSubs.length ? 'Coordinating ' + runningSubs.length + (runningSubs.length > 1 ? ' subagents' : ' subagent') : 'Waiting for the next step'),
+      tools: Math.floor(mainF * 24) + ' calls', tokens: kfmt(24000 * mainF) + ' tok',
+      elapsed: Math.floor(Math.min(t, 21)) + 's', progress: Math.round(mainF * 100) + '%'
+    }];
+    subs.forEach((d) => {
+      cards.push({
+        name: d.name, role: d.role, color: d.color, status: d.st, task: d.task,
+        line: d.st === 'done' ? d.done : (d.st === 'running' ? d.run : 'Waiting for its turn'),
+        tools: Math.floor(d.f * d.calls) + ' calls', tokens: kfmt(d.tok * d.f) + ' tok',
+        elapsed: d.st === 'done' ? (d.end - d.start) + 's' : (d.st === 'running' ? Math.floor(t - d.start) + 's' : '–'),
+        progress: Math.round(d.f * 100) + '%'
+      });
+    });
+    const agents = cards.map((c, i) => {
+      const run = c.status === 'running';
+      return Object.assign(c, {
+        statusLabel: label[c.status],
+        pillColor: run ? acc : (c.status === 'done' ? '#a9c08c' : '#9b998f'),
+        pillBg: run ? '#2e2622' : (c.status === 'done' ? '#242a1f' : '#2c2b28'),
+        lineColor: run ? '#e8e6dc' : (c.status === 'done' ? '#a8a69e' : '#7d7b73'),
+        border: run ? acc : '#3a3935',
+        cls: run ? 'card run' : 'card',
+        delay: (i * 80) + 'ms',
+        opacity: c.status === 'queued' ? 0.72 : 1,
+        barDisplay: run ? 'block' : 'none'
+      });
+    });
+    const working = agents.filter((a) => a.status === 'running').length;
+    const doneAgents = agents.filter((a) => a.status === 'done').length;
+    const tokens = 24000 * mainF + subs.reduce((n, d) => n + d.tok * d.f, 0);
+    const cost = tokens * 0.000005;
+    const doneCount = info.filter((d) => d.st === 'done').length;
+    return {
+      accent: acc, steps, agents, total: 5, doneCount,
+      bandStatus: fin ? 'done' : 'running',
+      nowLabel: fin ? 'All steps done' : (runningSteps[0] ? runningSteps[0].label : 'Starting') + (runningSteps.length > 1 ? ' +' + (runningSteps.length - 1) : ''),
+      workingLabel: fin ? 'Finished' : working + ' working',
+      tokensLabel: kfmt(tokens),
+      costLabel: '$' + cost.toFixed(2),
+      elapsed: '0:' + String(Math.floor(Math.min(t, 21))).padStart(2, '0'),
+      agentSummary: working + ' working · ' + doneAgents + ' done'
+    };
+  }
+}
+</script>
+</body>
+</html>

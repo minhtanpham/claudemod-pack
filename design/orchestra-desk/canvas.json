@@ -1,0 +1,43 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Artboard-ax7a.dc.html": {
+      "h": 860,
+      "handmade": true,
+      "title": "Orchestra Desk, live",
+      "w": 1440,
+      "x": 0,
+      "y": 0,
+      "is_interactive": true
+    },
+    "Mascot.dc.html": {
+      "h": 140,
+      "title": "Mascot",
+      "w": 160,
+      "x": 1520,
+      "y": 0
+    },
+    "States.dc.html": {
+      "h": 620,
+      "title": "Mascot roles and states",
+      "w": 760,
+      "x": 1520,
+      "y": 260
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-15T17:05:05.035Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {},
+  "notes": {},
+  "order": [
+    "Artboard-ax7a.dc.html",
+    "Mascot.dc.html",
+    "States.dc.html"
+  ],
+  "pages": [],
+  "title": "Orchestra Desk"
+}
