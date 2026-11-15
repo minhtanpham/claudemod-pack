@@ -1,10 +1,10 @@
-export type OrchestraStepStatus = 'pending' | 'in_progress' | 'completed'
+export type AgentDeckStepStatus = 'pending' | 'in_progress' | 'completed'
 
 /** One step of the to-do list the band tracks. */
-export type OrchestraStep = {
+export type AgentDeckStep = {
   id: string
   text: string
-  status: OrchestraStepStatus
+  status: AgentDeckStepStatus
   /** The "doing it now" wording, when the tool gave one. */
   active?: string
   /** How far a step in progress is, 0 to 1, when something knows (the demo). */
@@ -12,7 +12,7 @@ export type OrchestraStep = {
 }
 
 /** `queued` is an agent that has a card but has not started. */
-export type OrchestraAgentStatus =
+export type AgentDeckAgentStatus =
   | 'queued'
   | 'running'
   | 'done'
@@ -20,7 +20,7 @@ export type OrchestraAgentStatus =
   | 'stopped'
 
 /** Which pixel sprite an agent wears. */
-export type OrchestraRole =
+export type AgentDeckRole =
   | 'main'
   | 'explore'
   | 'coder'
@@ -28,14 +28,14 @@ export type OrchestraRole =
   | 'tester'
 
 /** One subagent's card in the pane. */
-export type OrchestraAgent = {
+export type AgentDeckAgent = {
   id: string
   type: string
-  role: OrchestraRole
+  role: AgentDeckRole
   description: string
   /** The model it was spawned on (an id or alias, or a demo label). */
   model?: string
-  status: OrchestraAgentStatus
+  status: AgentDeckAgentStatus
   startedAt: number
   endedAt?: number
   /** How many tool calls the subagent has made. */
@@ -51,17 +51,17 @@ export type OrchestraAgent = {
 }
 
 /** The main agent's own counts: it has no card of its own in `agents`. */
-export type OrchestraMain = {
+export type AgentDeckMain = {
   tools: number
   tokens: number
 }
 
 declare module 'claude-code' {
   interface PluginState {
-    'orchestra-desk': {
-      steps: Shaped<OrchestraStep[]>
-      agents: Shaped<OrchestraAgent[]>
-      main: Shaped<OrchestraMain>
+    'agent-deck': {
+      steps: Shaped<AgentDeckStep[]>
+      agents: Shaped<AgentDeckAgent[]>
+      main: Shaped<AgentDeckMain>
       now: Shaped<number>
       /** When the playing demo started; -1 while none plays. */
       demo: Shaped<number>

@@ -2,12 +2,12 @@
 // about steps, agents and wording lives here so it can be tested directly.
 
 import type {
-  OrchestraAgent,
-  OrchestraAgentStatus,
-  OrchestraMain,
-  OrchestraRole,
-  OrchestraStep,
-  OrchestraStepStatus,
+  AgentDeckAgent,
+  AgentDeckAgentStatus,
+  AgentDeckMain,
+  AgentDeckRole,
+  AgentDeckStep,
+  AgentDeckStepStatus,
 } from '../types'
 
 type Loose = Record<string, unknown>
@@ -18,21 +18,21 @@ const isRecord = (value: unknown): value is Loose =>
 const text = (value: unknown): string | undefined =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
 
-const STATUSES: readonly OrchestraStepStatus[] = [
+const STATUSES: readonly AgentDeckStepStatus[] = [
   'pending',
   'in_progress',
   'completed',
 ]
 
-const stepStatus = (value: unknown): OrchestraStepStatus =>
+const stepStatus = (value: unknown): AgentDeckStepStatus =>
   STATUSES.find(one => one === value) ?? 'pending'
 
 // ---------------------------------------------------------------- steps --
 
 /** Reads a whole list as a to-do or plan tool sends it. */
-export const stepsFromList = (raw: unknown): OrchestraStep[] => {
+export const stepsFromList = (raw: unknown): AgentDeckStep[] => {
   if (!Array.isArray(raw)) return []
-  const steps: OrchestraStep[] = []
+  const steps: AgentDeckStep[] = []
   for (const item of raw) {
     if (!isRecord(item)) continue
     const label = text(item.content) ?? text(item.text) ?? text(item.subject)
@@ -50,21 +50,21 @@ export const stepsFromList = (raw: unknown): OrchestraStep[] => {
 }
 
 export const addStep = (
-  steps: readonly OrchestraStep[],
+  steps: readonly AgentDeckStep[],
   id: string,
   label: string,
   active?: string,
-): OrchestraStep[] => [
+): AgentDeckStep[] => [
   ...steps.filter(step => step.id !== id),
   { id, text: label, status: 'pending', ...(active ? { active } : {}) },
 ]
 
 /** A TaskUpdate: new status or wording; `deleted` drops the step. */
 export const patchStep = (
-  steps: readonly OrchestraStep[],
+  steps: readonly AgentDeckStep[],
   id: string,
   patch: Loose,
-): OrchestraStep[] => {
+): AgentDeckStep[] => {
   if (patch.status === 'deleted') return steps.filter(step => step.id !== id)
 
   return steps.map(step => {
@@ -82,8 +82,8 @@ export const patchStep = (
 
 /** Completes the step in progress and starts the next pending one. */
 export const advanceSteps = (
-  steps: readonly OrchestraStep[],
-): OrchestraStep[] => {
+  steps: readonly AgentDeckStep[],
+): AgentDeckStep[] => {
   let isStarted = false
 
   return steps
@@ -105,13 +105,13 @@ export const advanceSteps = (
  * `done: [n]` and `start: n` move it, steps numbered from 1).
  */
 export const applyPlan = (
-  steps: readonly OrchestraStep[],
+  steps: readonly AgentDeckStep[],
   input: Loose,
-): OrchestraStep[] => {
+): AgentDeckStep[] => {
   const whole = input.items ?? input.steps ?? input.todos
   if (Array.isArray(whole)) return stepsFromList(whole)
 
-  let next: OrchestraStep[] = [...steps]
+  let next: AgentDeckStep[] = [...steps]
   if (input.advance === true) next = advanceSteps(next)
   if (Array.isArray(input.done)) {
     const done = new Set(input.done)
@@ -143,11 +143,11 @@ export const stepTool = (tool: string): StepKind | undefined => {
 
 /** The steps after one to-do tool call, given its input and its result. */
 export const reduceSteps = (
-  steps: readonly OrchestraStep[],
+  steps: readonly AgentDeckStep[],
   kind: StepKind,
   input: Loose,
   result: unknown,
-): OrchestraStep[] => {
+): AgentDeckStep[] => {
   if (kind === 'todos') return stepsFromList(input.todos)
   if (kind === 'plan') return applyPlan(steps, input)
   if (kind === 'task-update') {
@@ -168,11 +168,11 @@ export type Progress = {
   done: number
   total: number
   /** The step in progress, else the first pending one. */
-  current?: OrchestraStep
+  current?: AgentDeckStep
   isFinished: boolean
 }
 
-export const progressOf = (steps: readonly OrchestraStep[]): Progress => {
+export const progressOf = (steps: readonly AgentDeckStep[]): Progress => {
   const done = steps.filter(step => step.status === 'completed').length
   const current =
     steps.find(step => step.status === 'in_progress') ??
@@ -186,14 +186,14 @@ export const progressOf = (steps: readonly OrchestraStep[]): Progress => {
   }
 }
 
-export type BarRun = { status: OrchestraStepStatus; cells: number }
+export type BarRun = { status: AgentDeckStepStatus; cells: number }
 
 /**
  * The segmented bar as runs of same-status cells: one cell per step while
  * they fit in `width`, else each cell stands for the step under it.
  */
 export const barRuns = (
-  steps: readonly OrchestraStep[],
+  steps: readonly AgentDeckStep[],
   width: number,
 ): BarRun[] => {
   const cells = Math.max(0, Math.min(steps.length, Math.floor(width)))
@@ -246,7 +246,7 @@ export const modelLabel = (model?: string): string => {
 }
 
 /** Which sprite a subagent type wears: antenna, glasses, hard hat or plain. */
-export const roleOf = (type: string): OrchestraRole => {
+export const roleOf = (type: string): AgentDeckRole => {
   const name = type.toLowerCase()
   if (name.includes('explore')) return 'explore'
   if (name.includes('review')) return 'reviewer'
@@ -256,18 +256,18 @@ export const roleOf = (type: string): OrchestraRole => {
 }
 
 export const addAgent = (
-  agents: readonly OrchestraAgent[],
-  agent: OrchestraAgent,
-): OrchestraAgent[] =>
+  agents: readonly AgentDeckAgent[],
+  agent: AgentDeckAgent,
+): AgentDeckAgent[] =>
   [...agents.filter(one => one.id !== agent.id), agent].slice(-MAX_AGENTS)
 
 /** One more tool call by an agent; an unknown agent gets a card. */
 export const touchAgent = (
-  agents: readonly OrchestraAgent[],
+  agents: readonly AgentDeckAgent[],
   id: string,
   label: string,
   at: number,
-): OrchestraAgent[] => {
+): AgentDeckAgent[] => {
   if (!agents.some(one => one.id === id)) {
     return addAgent(agents, {
       id,
@@ -304,21 +304,21 @@ export const usageTokens = (usage: unknown): number => {
 }
 
 export const addTokens = (
-  agents: readonly OrchestraAgent[],
+  agents: readonly AgentDeckAgent[],
   id: string,
   tokens: number,
-): OrchestraAgent[] =>
+): AgentDeckAgent[] =>
   agents.map(one =>
     one.id === id ? { ...one, tokens: one.tokens + tokens } : one,
   )
 
 export const settleAgent = (
-  agents: readonly OrchestraAgent[],
+  agents: readonly AgentDeckAgent[],
   id: string,
-  status: OrchestraAgentStatus,
+  status: AgentDeckAgentStatus,
   at: number,
   summary?: string,
-): OrchestraAgent[] =>
+): AgentDeckAgent[] =>
   agents.map(one => {
     if (one.id !== id) return one
     if (status === 'running') {
@@ -334,7 +334,7 @@ export const settleAgent = (
 /** What `$.agent.list()` calls an ended agent, as a card's status. */
 export const endedStatus = (
   status: string,
-): OrchestraAgentStatus | undefined => {
+): AgentDeckAgentStatus | undefined => {
   if (status === 'completed') return 'done'
   if (status === 'failed') return 'failed'
   if (status === 'killed') return 'stopped'
@@ -344,19 +344,19 @@ export const endedStatus = (
 
 /** Drops the cards that ended; the ones still to come stay. */
 export const clearEnded = (
-  agents: readonly OrchestraAgent[],
-): OrchestraAgent[] =>
+  agents: readonly AgentDeckAgent[],
+): AgentDeckAgent[] =>
   agents.filter(one => one.status === 'running' || one.status === 'queued')
 
 /** In the order they began, so a card keeps its place as it changes. */
 export const sortAgents = (
-  agents: readonly OrchestraAgent[],
-): OrchestraAgent[] => [...agents].sort((a, b) => a.startedAt - b.startedAt)
+  agents: readonly AgentDeckAgent[],
+): AgentDeckAgent[] => [...agents].sort((a, b) => a.startedAt - b.startedAt)
 
-export const countRunning = (agents: readonly OrchestraAgent[]): number =>
+export const countRunning = (agents: readonly AgentDeckAgent[]): number =>
   agents.filter(one => one.status === 'running').length
 
-export const countEnded = (agents: readonly OrchestraAgent[]): number =>
+export const countEnded = (agents: readonly AgentDeckAgent[]): number =>
   agents.filter(one => one.status !== 'running' && one.status !== 'queued')
     .length
 
@@ -436,11 +436,11 @@ export const plural = (count: number, word: string): string =>
 export type CardView = {
   id: string
   name: string
-  role: OrchestraRole
+  role: AgentDeckRole
   /** The model label the chip shows, such as `Haiku 5.5`. */
   model: string
   modelKey: ModelKey
-  status: OrchestraAgentStatus
+  status: AgentDeckAgentStatus
   task: string
   line: string
   calls: number
@@ -459,7 +459,7 @@ export const tally = (cards: readonly CardView[]): { working: number; done: numb
   done: cards.filter(one => one.status === 'done').length,
 })
 
-const STATUS_WORD: Record<OrchestraAgentStatus, string> = {
+const STATUS_WORD: Record<AgentDeckAgentStatus, string> = {
   queued: 'Queued',
   running: 'Working',
   done: 'Done',
@@ -467,11 +467,11 @@ const STATUS_WORD: Record<OrchestraAgentStatus, string> = {
   stopped: 'Stopped',
 }
 
-export const statusWord = (status: OrchestraAgentStatus): string =>
+export const statusWord = (status: AgentDeckAgentStatus): string =>
   STATUS_WORD[status]
 
 /** How full the plan is: finished steps plus the part of the one under way. */
-export const planFraction = (steps: readonly OrchestraStep[]): number => {
+export const planFraction = (steps: readonly AgentDeckStep[]): number => {
   if (steps.length === 0) return 0
   const sum = steps.reduce(
     (total, step) =>
@@ -488,16 +488,16 @@ export const planFraction = (steps: readonly OrchestraStep[]): number => {
 }
 
 const isPlanOver = (
-  steps: readonly OrchestraStep[],
-  agents: readonly OrchestraAgent[],
+  steps: readonly AgentDeckStep[],
+  agents: readonly AgentDeckAgent[],
 ): boolean =>
   (steps.length > 0 ? progressOf(steps).isFinished : true) &&
   countRunning(agents) === 0
 
 export const mainCard = (
-  steps: readonly OrchestraStep[],
-  agents: readonly OrchestraAgent[],
-  main: OrchestraMain,
+  steps: readonly AgentDeckStep[],
+  agents: readonly AgentDeckAgent[],
+  main: AgentDeckMain,
   at: number,
   started: number,
   isBusy: boolean,
@@ -537,7 +537,7 @@ export const mainCard = (
   }
 }
 
-const subCard = (agent: OrchestraAgent, at: number): CardView => {
+const subCard = (agent: AgentDeckAgent, at: number): CardView => {
   const isLive = agent.status === 'running'
   const fallback = isLive ? 'Starting…' : ''
 
@@ -574,9 +574,9 @@ const subCard = (agent: OrchestraAgent, at: number): CardView => {
 
 /** The main agent first, then every subagent in the order they began. */
 export const buildCards = (
-  steps: readonly OrchestraStep[],
-  agents: readonly OrchestraAgent[],
-  main: OrchestraMain,
+  steps: readonly AgentDeckStep[],
+  agents: readonly AgentDeckAgent[],
+  main: AgentDeckMain,
   at: number,
   started: number,
   isBusy: boolean,
@@ -600,9 +600,9 @@ export type BandView = {
 }
 
 export const bandOf = (
-  steps: readonly OrchestraStep[],
-  agents: readonly OrchestraAgent[],
-  main: OrchestraMain,
+  steps: readonly AgentDeckStep[],
+  agents: readonly AgentDeckAgent[],
+  main: AgentDeckMain,
   at: number,
   started: number,
   isBusy: boolean,
@@ -643,7 +643,7 @@ export const DEMO_SECONDS = 21
 type DemoRole = {
   id: string
   type: string
-  role: OrchestraRole
+  role: AgentDeckRole
   model: string
   label: string
   description: string
@@ -734,7 +734,7 @@ const windowOf = (
   t: number,
   from: number,
   to: number,
-): { status: OrchestraStepStatus; fill: number } => {
+): { status: AgentDeckStepStatus; fill: number } => {
   const fill = unit((t - from) / (to - from))
 
   return t >= to
@@ -744,7 +744,7 @@ const windowOf = (
       : { status: 'pending', fill: 0 }
 }
 
-export const demoSteps = (t: number): OrchestraStep[] =>
+export const demoSteps = (t: number): AgentDeckStep[] =>
   [
     ...DEMO_ROLES.map(one => ({ ...one, text: one.label })),
     { id: 'demo-5', text: DEMO_LAST.label, ...DEMO_LAST },
@@ -763,7 +763,7 @@ export const demoAgents = (
   t: number,
   t0: number,
   isFail = false,
-): OrchestraAgent[] =>
+): AgentDeckAgent[] =>
   DEMO_ROLES.map(one => {
     const { status, fill } = windowOf(t, one.from, one.to)
     const isFailed = isFail && one.role === 'reviewer'
@@ -793,7 +793,7 @@ export const demoAgents = (
     }
   })
 
-export const demoMain = (t: number): OrchestraMain => {
+export const demoMain = (t: number): AgentDeckMain => {
   const f = unit(t / DEMO_SECONDS)
 
   return {

@@ -51,7 +51,7 @@ export type RouterPick = '' | 'fable' | 'opus' | 'cancel'
 
 declare module 'claude-code' {
   interface PluginState {
-    'model-router': {
+    'subagent-router': {
       ledger: Shaped<RouterEntry[]>
       /** Agents not settled yet, in the order they arrived. */
       live: Shaped<LiveRow[]>

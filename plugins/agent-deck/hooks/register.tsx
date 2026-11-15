@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { Hook, Register } from 'claude-code'
 
-import type { OrchestraRole, OrchestraAgentStatus } from '../types'
+import type { AgentDeckRole, AgentDeckAgentStatus } from '../types'
 
 import {
   addAgent,
@@ -53,40 +53,40 @@ import {
   mascotSvg,
 } from './mascot'
 
-const PANE = 'orchestra-desk'
-const TITLE = 'Orchestra'
+const PANE = 'agent-deck'
+const TITLE = 'Agent Deck'
 // The dock's width request: a narrow side column. A width the person dragged wins.
 const DOCK_COLUMNS = 40
 
 // Change a tag when the value's fields change: it declines what an earlier
 // version stored, which outlives a hot reload.
-const steps = atom({ plugin: 'orchestra-desk', key: 'steps' } as const, [], {
+const steps = atom({ plugin: 'agent-deck', key: 'steps' } as const, [], {
   shape: 'steps-2',
 })
-const agents = atom({ plugin: 'orchestra-desk', key: 'agents' } as const, [], {
+const agents = atom({ plugin: 'agent-deck', key: 'agents' } as const, [], {
   shape: 'agents-2',
 })
 const main = atom(
-  { plugin: 'orchestra-desk', key: 'main' } as const,
+  { plugin: 'agent-deck', key: 'main' } as const,
   { tools: 0, tokens: 0 },
   { shape: 'main-1' },
 )
-const now = atom({ plugin: 'orchestra-desk', key: 'now' } as const, 0, {
+const now = atom({ plugin: 'agent-deck', key: 'now' } as const, 0, {
   shape: 'now-1',
 })
 // When the demo that is playing started; -1 while none plays.
-const demo = atom({ plugin: 'orchestra-desk', key: 'demo' } as const, -1, {
+const demo = atom({ plugin: 'agent-deck', key: 'demo' } as const, -1, {
   shape: 'demo-1',
 })
-const demoFail = atom({ plugin: 'orchestra-desk', key: 'demoFail' } as const, false, {
+const demoFail = atom({ plugin: 'agent-deck', key: 'demoFail' } as const, false, {
   shape: 'demo-fail-1',
 })
 // Whether the main agent is in a turn now; false between turns.
-const busy = atom({ plugin: 'orchestra-desk', key: 'busy' } as const, false, {
+const busy = atom({ plugin: 'agent-deck', key: 'busy' } as const, false, {
   shape: 'busy-1',
 })
 // When work began, for the band's clock; -1 while none has.
-const started = atom({ plugin: 'orchestra-desk', key: 'started' } as const, -1, {
+const started = atom({ plugin: 'agent-deck', key: 'started' } as const, -1, {
   shape: 'started-1',
 })
 
@@ -136,7 +136,7 @@ const SPIN = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '�
 
 // Theme keys, not hex: the terminal and the desktop app resolve them against
 // the person's own light or dark theme, so the colors stay legible in both.
-const STATUS_COLOR: Record<OrchestraAgentStatus, 'claude' | 'inactive' | 'success' | 'error'> = {
+const STATUS_COLOR: Record<AgentDeckAgentStatus, 'claude' | 'inactive' | 'success' | 'error'> = {
   running: 'claude',
   queued: 'inactive',
   done: 'success',
@@ -144,7 +144,7 @@ const STATUS_COLOR: Record<OrchestraAgentStatus, 'claude' | 'inactive' | 'succes
   stopped: 'inactive',
 }
 
-const STATUS_BG: Partial<Record<OrchestraAgentStatus, 'diffAddedDimmed' | 'diffRemovedDimmed'>> = {
+const STATUS_BG: Partial<Record<AgentDeckAgentStatus, 'diffAddedDimmed' | 'diffRemovedDimmed'>> = {
   done: 'diffAddedDimmed',
   failed: 'diffRemovedDimmed',
 }
@@ -154,9 +154,9 @@ const BAR_CHARS = { done: '━━━', run: '╍╍╍', wait: '───' } as 
 export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'orchestra',
+      name: 'deck',
       description:
-        'Open the Orchestra pane. "demo" plays a sample run ("demo fail" with a failing agent), "clear" empties it',
+        'Open the Agent Deck pane. "demo" plays a sample run ("demo fail" with a failing agent), "clear" empties it',
     })
 
     // One clock for every elapsed time, moving only while something runs. It
@@ -195,15 +195,15 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // Answered here, so it runs no model call: `/orchestra`, `/orchestra demo`,
-  // `/orchestra demo fail` and `/orchestra clear`.
-  on('command.run', { command: 'orchestra' }, async ($, e) => {
+  // Answered here, so it runs no model call: `/deck`, `/deck demo`,
+  // `/deck demo fail` and `/deck clear`.
+  on('command.run', { command: 'deck' }, async ($, e) => {
     const words = e.args.trim().toLowerCase().split(/\s+/)
     const word = words[0] ?? ''
     if (word === 'clear') {
       await clearAll($)
 
-      return { text: 'Orchestra cleared: no plan, no cards.' }
+      return { text: 'Agent Deck cleared: no plan, no cards.' }
     }
 
     const isDemo = word === 'demo'
@@ -216,8 +216,8 @@ export const register: Register = (on, options) => {
 
     return {
       text: isDemo
-        ? `Orchestra demo started: a sample plan and four sample agents, about ${DEMO_SECONDS} seconds, no model call. ${where}`
-        : `Orchestra: ${where}`,
+        ? `Agent Deck demo started: a sample plan and four sample agents, about ${DEMO_SECONDS} seconds, no model call. ${where}`
+        : `Agent Deck: ${where}`,
     }
   })
 
@@ -394,7 +394,7 @@ export const register: Register = (on, options) => {
     }
     const mainModel = await mainModelOf($, cards)
     const frame = Math.floor(at / 500)
-    const status: OrchestraAgentStatus = band.isFinished ? 'done' : 'running'
+    const status: AgentDeckAgentStatus = band.isFinished ? 'done' : 'running'
     const segments = barSegments(list)
     const columns = Math.max(20, e.props.bodyColumns)
     const room = Math.max(8, columns - 60)
@@ -404,7 +404,7 @@ export const register: Register = (on, options) => {
       'Svg' in T ? (
         <T.Svg
           source={mascotSvg('main', status, modelKey(mainModel), 30)}
-          alt="Orchestra mascot"
+          alt="Agent Deck mascot"
           width={30}
           height={24}
           isInteractive
@@ -548,8 +548,8 @@ export const register: Register = (on, options) => {
     }
 
     const sprite = (
-      role: OrchestraRole,
-      status: OrchestraAgentStatus,
+      role: AgentDeckRole,
+      status: AgentDeckAgentStatus,
       model: ReturnType<typeof modelKey>,
       id: string,
     ) =>

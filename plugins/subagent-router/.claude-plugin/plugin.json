@@ -1,5 +1,5 @@
 {
-  "name": "model-router",
+  "name": "subagent-router",
   "version": "0.1.0",
   "description": "Before each subagent starts, Haiku reads its task and picks the cheapest model that can do it (Sonnet at least for code edits, Fable only with your OK); a band above the prompt shows each pick and the estimated saving.",
   "author": {

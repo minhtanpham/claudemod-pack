@@ -6,7 +6,7 @@
 
 import type { Role, Tier } from '../types'
 
-/** Palette values per mode: [light, dark], from design/model-router TOKENS. */
+/** Palette values per mode: [light, dark], from design/subagent-router TOKENS. */
 export const C = {
   haiku: ['#2f6fa3', '#6a9bcc'],
   sonnet: ['#6d5fb5', '#a79bd6'],

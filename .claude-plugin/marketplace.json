@@ -7,14 +7,14 @@
   "description": "A pack of Claude Code mods (plugins with a hooks module) for everyday work",
   "plugins": [
     {
-      "name": "orchestra-desk",
-      "source": "./plugins/orchestra-desk",
+      "name": "agent-deck",
+      "source": "./plugins/agent-deck",
       "description": "A to-do progress band above the prompt and a side pane with a live card per subagent.",
       "version": "0.1.0"
     },
     {
-      "name": "model-router",
-      "source": "./plugins/model-router",
+      "name": "subagent-router",
+      "source": "./plugins/subagent-router",
       "description": "Before each subagent starts, Haiku picks the cheapest model that can do its task (haiku, sonnet or opus, agent by agent); warns before anything runs on Fable; /router shows the estimated savings.",
       "version": "0.1.0"
     }

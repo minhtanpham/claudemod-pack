@@ -4,7 +4,7 @@
 
 import type { BoxProps, ElementConstructor, RenderElement, TextProps } from 'claude-code'
 
-import type { OrchestraAgentStatus, OrchestraStep } from '../types'
+import type { AgentDeckAgentStatus, AgentDeckStep } from '../types'
 import {
   clip,
   clock,
@@ -64,7 +64,7 @@ export const segmentGlyphs = (fill: number, cells: number): Seg[] => {
 }
 
 /** The bar: one segment per step, a space between; narrower as steps grow. */
-export const bandBar = (steps: readonly OrchestraStep[], budget = 24): Seg[] => {
+export const bandBar = (steps: readonly AgentDeckStep[], budget = 24): Seg[] => {
   if (steps.length === 0) return []
   const cells = Math.max(1, Math.min(4, Math.floor((budget - (steps.length - 1)) / steps.length)))
   const out: Seg[] = []
@@ -86,7 +86,7 @@ const LABEL_MAX = 18
  */
 export const bandRow = (
   band: BandView,
-  steps: readonly OrchestraStep[],
+  steps: readonly AgentDeckStep[],
   columns: number,
 ): Seg[] => {
   const hasPlan = steps.length > 0
@@ -138,13 +138,13 @@ const row = ({ Box, Text }: Elements, segs: readonly Seg[]): RenderElement => (
 export const terminalBand = (
   T: Elements,
   band: BandView,
-  steps: readonly OrchestraStep[],
+  steps: readonly AgentDeckStep[],
   columns: number,
 ): RenderElement => row(T, bandRow(band, steps, columns))
 
 // ----------------------------------------------------------------- pane --
 
-const ICON: Record<OrchestraAgentStatus, string> = {
+const ICON: Record<AgentDeckAgentStatus, string> = {
   running: '○',
   done: '●',
   queued: '○',
@@ -175,7 +175,7 @@ export const cardWidths = (columns: number) => {
 
 export const terminalPane = (
   T: Elements,
-  steps: readonly OrchestraStep[],
+  steps: readonly AgentDeckStep[],
   cards: readonly CardView[],
   tally: string,
   columns: number,
@@ -188,7 +188,7 @@ export const terminalPane = (
 
   return (
     <Box flexDirection="column" gap={1}>
-      <Text bold>Orchestra</Text>
+      <Text bold>Agent Deck</Text>
 
       {steps.length > 0 && (
         <Box flexDirection="column">

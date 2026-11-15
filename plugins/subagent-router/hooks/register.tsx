@@ -57,14 +57,14 @@ import type { MascotLook, Pip } from './look'
 
 // Change a tag when the value's fields change: it declines what an earlier
 // version stored, which outlives a hot reload.
-const ledger = atom({ plugin: 'model-router', key: 'ledger' } as const, [], { shape: 'ledger-2' })
-const live = atom({ plugin: 'model-router', key: 'live' } as const, [], { shape: 'live-1' })
-const isOff = atom({ plugin: 'model-router', key: 'isOff' } as const, false, { shape: 'off-1' })
-const isOpen = atom({ plugin: 'model-router', key: 'isOpen' } as const, true, { shape: 'open-1' })
-const mode = atom({ plugin: 'model-router', key: 'mode' } as const, 'spawn', { shape: 'mode-1' })
-const pick = atom({ plugin: 'model-router', key: 'pick' } as const, '', { shape: 'pick-1' })
-const demo = atom({ plugin: 'model-router', key: 'demo' } as const, -1, { shape: 'demo-1' })
-const now = atom({ plugin: 'model-router', key: 'now' } as const, 0, { shape: 'now-1' })
+const ledger = atom({ plugin: 'subagent-router', key: 'ledger' } as const, [], { shape: 'ledger-2' })
+const live = atom({ plugin: 'subagent-router', key: 'live' } as const, [], { shape: 'live-1' })
+const isOff = atom({ plugin: 'subagent-router', key: 'isOff' } as const, false, { shape: 'off-1' })
+const isOpen = atom({ plugin: 'subagent-router', key: 'isOpen' } as const, true, { shape: 'open-1' })
+const mode = atom({ plugin: 'subagent-router', key: 'mode' } as const, 'spawn', { shape: 'mode-1' })
+const pick = atom({ plugin: 'subagent-router', key: 'pick' } as const, '', { shape: 'pick-1' })
+const demo = atom({ plugin: 'subagent-router', key: 'demo' } as const, -1, { shape: 'demo-1' })
+const now = atom({ plugin: 'subagent-router', key: 'now' } as const, 0, { shape: 'now-1' })
 
 // The terminal band's last width, so the Fable dialog's rules match it.
 let bandColumns = 80
@@ -145,7 +145,7 @@ export const register: Register = (on, options) => {
     await $.command.register({
       name: 'router',
       description:
-        'Model router: "demo" plays a sample with no model call, "status" shows the estimated savings, "mode spawn|prompt|session", "off" / "on", "reset"',
+        'Subagent router: "demo" plays a sample with no model call, "status" shows the estimated savings, "mode spawn|prompt|session", "off" / "on", "reset"',
     })
 
     $.clock.every(STEP_MS, async () => {
@@ -293,7 +293,7 @@ export const register: Register = (on, options) => {
           await record({ role, scope, why, chosen: 'fable', isHaiku, isCancelled: true, ...split(tok) })
           await showStatus($)
 
-          return { deny: 'model-router: agent cancelled at the Fable question.' }
+          return { deny: 'subagent-router: agent cancelled at the Fable question.' }
         }
         if (answer !== USE_FABLE) {
           chosen = 'opus'
@@ -305,7 +305,7 @@ export const register: Register = (on, options) => {
       await record({ role, scope, why, chosen, isHaiku, isCancelled: false, ...split(tok) })
       if (showNotice) {
         try {
-          $.ui.notice(e.tool_use_id, `model-router: ${TIER_NAME[chosen]} · ${scope} · ${why}`)
+          $.ui.notice(e.tool_use_id, `subagent-router: ${TIER_NAME[chosen]} · ${scope} · ${why}`)
         } catch {
           // A note is a courtesy.
         }
@@ -426,7 +426,7 @@ export const register: Register = (on, options) => {
             <Text color={waiting ? 'claude' : TIER_KEY.haiku}>
               {waiting ? '○' : reviewing ? SPIN[frame % SPIN.length] : '●'}{' '}
             </Text>
-            <Text bold>Model Router</Text>
+            <Text bold>Subagent Router</Text>
             <Text color={waiting ? 'claude' : undefined} dimColor={!waiting} wrap="truncate">
               {'  '}
               {clip(word, Math.max(4, columns - 18 - right.length - 4))}
@@ -593,7 +593,7 @@ export const register: Register = (on, options) => {
           </Text>
         )}
         <Text bold weight="bold">
-          Model Router
+          Subagent Router
         </Text>
         <Box flexGrow={1}>
           <Text
@@ -912,14 +912,14 @@ export const register: Register = (on, options) => {
     if (word === 'off' || word === 'on') {
       await update($, isOff, () => word === 'off')
 
-      return { text: `model-router ${word}.` }
+      return { text: `subagent-router ${word}.` }
     }
     if (word === 'mode') {
       const m = MODES.find(x => x.id === arg)
       if (!m) return { text: 'Usage: /router mode spawn|prompt|session' }
       await update($, mode, () => m.id)
 
-      return { text: `model-router reviews: ${m.label}.` }
+      return { text: `subagent-router reviews: ${m.label}.` }
     }
     if (word === 'demo') {
       const at = await $.clock.now()
@@ -928,7 +928,7 @@ export const register: Register = (on, options) => {
       await update($, demo, () => at)
 
       return {
-        text: 'model-router demo: five sample agents, no model call. It stops at the Fable question for your answer.',
+        text: 'subagent-router demo: five sample agents, no model call. It stops at the Fable question for your answer.',
       }
     }
     if (word === 'reset') {
@@ -940,7 +940,7 @@ export const register: Register = (on, options) => {
       perSession.clear()
       $.ui.status(undefined)
 
-      return { text: 'model-router tally cleared.' }
+      return { text: 'subagent-router tally cleared.' }
     }
     const l = await read($, ledger)
     const t = totals(l, routerCost(l, await read($, live)))

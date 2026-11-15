@@ -170,8 +170,8 @@ export const FABLE_HEADER = 'Fable needed'
 /** The status line under the prompt (design/cli 03, 04). */
 export function statusLine(t: Totals, isWaiting: boolean): string {
   return isWaiting
-    ? 'model-router · waiting for your OK'
-    : `model-router · ${money(Math.max(0, t.saved))} saved (${t.pct}%)`
+    ? 'subagent-router · waiting for your OK'
+    : `subagent-router · ${money(Math.max(0, t.saved))} saved (${t.pct}%)`
 }
 
 // --------------------------------------------------------------- usage --
@@ -276,13 +276,13 @@ export const usd = money
 /** The text `/router status` answers. */
 export function report(t: Totals, isOff: boolean, mode: string): string {
   const state = isOff ? 'off' : `on (${mode})`
-  if (t.agents + t.cancelled === 0) return `model-router is ${state}. No subagent routed yet.`
+  if (t.agents + t.cancelled === 0) return `subagent-router is ${state}. No subagent routed yet.`
   const mix = TIERS.filter(k => t.byTier[k] > 0)
     .map(k => `${t.byTier[k]} ${k}`)
     .join(', ')
 
   return [
-    `model-router is ${state}: ${t.agents} subagents routed (${mix || 'none'})${t.cancelled ? `, ${t.cancelled} cancelled` : ''}.`,
+    `subagent-router is ${state}: ${t.agents} subagents routed (${mix || 'none'})${t.cancelled ? `, ${t.cancelled} cancelled` : ''}.`,
     `Without the router (every agent on the session model): ~${money(t.baseline)}. With it: ~${money(t.total)}, including ${money(t.overhead)} for the Haiku reviews.`,
     `Estimated saving: ~${money(Math.max(0, t.saved))} (${t.pct}%). ${t.measured}/${t.agents} use real token counts; the rest are estimates split 80% input, 20% output.`,
     'List prices; it ignores retries a cheaper model may need.',

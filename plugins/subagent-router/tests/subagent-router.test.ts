@@ -40,7 +40,7 @@ const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
 
 const band = (surface: (typeof SURFACES)[number], bodyColumns = 140) =>
   ({
-    plugin: 'model-router',
+    plugin: 'subagent-router',
     component: 'AbovePrompt',
     surface,
     props: {
@@ -251,9 +251,9 @@ test('Esc on the Fable question cancels the agent; with nobody to ask it runs on
 
 test('the status line carries the saving, or the wait for an OK', () => {
   const t = totals([], 0)
-  expect(router.statusLine({ ...t, saved: 1.12, pct: 60 }, false)).toBe('model-router · $1.12 saved (60%)')
-  expect(router.statusLine({ ...t, saved: -2.45, pct: 0 }, false)).toBe('model-router · $0.000 saved (0%)')
-  expect(router.statusLine(t, true)).toBe('model-router · waiting for your OK')
+  expect(router.statusLine({ ...t, saved: 1.12, pct: 60 }, false)).toBe('subagent-router · $1.12 saved (60%)')
+  expect(router.statusLine({ ...t, saved: -2.45, pct: 0 }, false)).toBe('subagent-router · $0.000 saved (0%)')
+  expect(router.statusLine(t, true)).toBe('subagent-router · waiting for your OK')
 })
 
 test('Use Fable runs it on Fable, past the Opus ceiling', async ($, on) => {
@@ -290,7 +290,7 @@ test('the band shows the header, row, strip and switch on every rich surface', a
 
   for (const surface of SURFACES.filter(s => s !== 'terminal')) {
     const ui = await $.ui.mount(band(surface))
-    expect(await ui.find({ type: 'Text', text: 'Model Router' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'Subagent Router' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /1 agent routed by Haiku 5\.5/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Read-only search · no edits/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: 'ESTIMATED SAVING' })).toBeDefined()
@@ -308,7 +308,7 @@ test('the terminal band is the design/cli panel: rule, header, rows, summary, fo
   await $.agent.spawn(SPAWN as any)
   const ui = await $.ui.mount(band('terminal', 92))
   expect((await ui.find({ type: 'Text', text: /^─+$/ }))?.text).toHaveLength(92)
-  expect(await ui.find({ type: 'Text', text: 'Model Router' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Subagent Router' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^ {2}1 routed$/ })).toBeDefined()
   expect((await ui.find({ type: 'Text', text: /saved {2}$/ }))?.text).toMatch(/^\$0\.\d\d saved {2}$/)
   expect(await ui.find({ type: 'Text', text: 'Explore' })).toBeDefined()
@@ -393,6 +393,6 @@ test('/router demo plays to the Fable question, then to Fable confirmed', async 
 
   await clock.advance(40_000)
   ui = await $.ui.mount(band('desktop'))
-  expect(await ui.find({ type: 'Text', text: 'Model Router' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: 'Subagent Router' })).toBeUndefined()
   await ui.unmount()
 })

@@ -1,7 +1,7 @@
 // Pure drawing helpers: the pixel mascot as SVG (remote surfaces) and as
 // half-block cells (terminal), plus the band's one-segment-per-step bar.
 
-import type { OrchestraAgentStatus, OrchestraRole, OrchestraStep } from '../types'
+import type { AgentDeckAgentStatus, AgentDeckRole, AgentDeckStep } from '../types'
 import { MODEL_COLOR, type ModelKey } from './model'
 
 export const COLS = 22
@@ -24,12 +24,12 @@ const ACC_TEXT = { light: '#b5502f', dark: '#d97757' } as const
 
 type Rect = readonly [number, number, number, number]
 
-const bodyClass = (status: OrchestraAgentStatus, model: ModelKey): string =>
+const bodyClass = (status: AgentDeckAgentStatus, model: ModelKey): string =>
   status === 'queued' ? 'sleep' : `m-${model}`
-const fillAttr = (status: OrchestraAgentStatus, model: ModelKey): string =>
+const fillAttr = (status: AgentDeckAgentStatus, model: ModelKey): string =>
   ` class="${bodyClass(status, model)}"`
 
-const eyes = (status: OrchestraAgentStatus): 'open' | 'happy' | 'x' =>
+const eyes = (status: AgentDeckAgentStatus): 'open' | 'happy' | 'x' =>
   status === 'done' ? 'happy' : status === 'failed' || status === 'stopped' ? 'x' : 'open'
 
 // ------------------------------------------------------------------ svg --
@@ -70,8 +70,8 @@ ${modelCss('dark')}
 
 /** The sprite's shapes, in a 22 × 18 box, with the class that animates them. */
 const mascotBody = (
-  role: OrchestraRole,
-  status: OrchestraAgentStatus,
+  role: AgentDeckRole,
+  status: AgentDeckAgentStatus,
   model: ModelKey,
 ): string => {
   const look = eyes(status)
@@ -127,8 +127,8 @@ const mascotBody = (
 
 /** The mascot as an SVG that animates itself; draw it with `isInteractive`. */
 export const mascotSvg = (
-  role: OrchestraRole,
-  status: OrchestraAgentStatus,
+  role: AgentDeckRole,
+  status: AgentDeckAgentStatus,
   model: ModelKey,
   px: number,
 ): string => {
@@ -144,8 +144,8 @@ export const mascotSvg = (
 
 /** A card's sprite: a 64px tile (inset fill, soft border, radius 10) holding the mascot at 44px. */
 export const tileSvg = (
-  role: OrchestraRole,
-  status: OrchestraAgentStatus,
+  role: AgentDeckRole,
+  status: AgentDeckAgentStatus,
   model: ModelKey,
 ): string =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" shape-rendering="crispEdges">` +
@@ -168,7 +168,7 @@ export const chipSvg = (model: ModelKey, label: string): string => {
 }
 
 /** A plan row's 16px icon: a clay circle with a check, a spinning ring, an empty ring. */
-export const planIconSvg = (status: OrchestraStep['status']): string => {
+export const planIconSvg = (status: AgentDeckStep['status']): string => {
   const head =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">` +
     `<style>.a{fill:#d97757}.ra{stroke:#f0c9b8}.rt{stroke:${ACC_TEXT.light}}.rq{stroke:#c9c7bc}` +
@@ -195,17 +195,17 @@ export const planIconSvg = (status: OrchestraStep['status']): string => {
 export type Segment = 'done' | 'run' | 'wait'
 
 /** One segment per step: finished, under way, still to come. */
-export const barSegments = (steps: readonly OrchestraStep[]): Segment[] =>
+export const barSegments = (steps: readonly AgentDeckStep[]): Segment[] =>
   steps.map(step =>
     step.status === 'completed' ? 'done' : step.status === 'in_progress' ? 'run' : 'wait',
   )
 
 /** How full one step's segment is: done 1, running its fill (or half), queued 0. */
-export const segmentFill = (step: OrchestraStep): number =>
+export const segmentFill = (step: AgentDeckStep): number =>
   step.status === 'completed' ? 1 : step.status === 'in_progress' ? step.fill ?? 0.5 : 0
 
 /** The band's bar: one 8px segment per step, 4px gaps, running ones striped. */
-export const barSvg = (steps: readonly OrchestraStep[], width: number): string => {
+export const barSvg = (steps: readonly AgentDeckStep[], width: number): string => {
   const gap = 4
   const h = 8
   const n = Math.max(1, steps.length)
@@ -253,8 +253,8 @@ const paint = (grid: Grid, [x, y, w, h]: Rect, rgb: number): void => {
 
 /** One frame of the mascot as a grid of colors; `frame` flips its legs. */
 export const mascotPixels = (
-  role: OrchestraRole,
-  status: OrchestraAgentStatus,
+  role: AgentDeckRole,
+  status: AgentDeckAgentStatus,
   color: string,
   frame: number,
 ): Grid => {
@@ -357,8 +357,8 @@ const first = (...values: (number | undefined)[]): number | undefined =>
 
 /** The mascot for a terminal: 2×2 pixels per half cell, 11×5 cells. */
 export const mascotCells = (
-  role: OrchestraRole,
-  status: OrchestraAgentStatus,
+  role: AgentDeckRole,
+  status: AgentDeckAgentStatus,
   color: string,
   frame: number,
 ): string => {
@@ -381,7 +381,7 @@ export const mascotCells = (
 }
 
 /** The band's mascot on a terminal: one colored glyph. */
-export const bandGlyph = (status: OrchestraAgentStatus, frame: number): string =>
+export const bandGlyph = (status: AgentDeckAgentStatus, frame: number): string =>
   status === 'running' ? (frame % 2 === 0 ? '▟▙' : '▜▛') : status === 'queued' ? '▂▂' : '▟▙'
 
 const BADGE: Record<string, { light: [string, string]; dark: [string, string] }> = {

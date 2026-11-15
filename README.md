@@ -1,28 +1,51 @@
 # claudemod-pack
 
-A pack of [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overview.md), published as a plugin marketplace. Each mod is a Claude Code plugin with a hooks module: JavaScript/TypeScript that runs inside the session and can draw bands, panes and toasts, add commands and tools, and react to tool calls.
+**See what your subagents are doing, and pay less for them.** Two [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overview.md) that draw a live progress band above the prompt, give every subagent its own card, and pick the cheapest model that can do each job.
+
+![claudemod-pack demo](images/1116.gif)
+
+```
+/plugin marketplace add minhtanpham/claudemod-pack
+/plugin install agent-deck@claudemod-pack
+/plugin install subagent-router@claudemod-pack
+/reload-plugins
+```
+
+Each mod is a Claude Code plugin with a hooks module: JavaScript/TypeScript that runs inside the session and can draw bands, panes and toasts, add commands and tools, and react to tool calls. Both follow light and dark mode, adapt to a narrow sidebar, and have a `demo` command that plays a sample with no model call and no tokens.
 
 | Mod | Version | What it does |
 | --- | --- | --- |
-| [orchestra-desk](plugins/orchestra-desk) | 0.1.0 | A to-do progress band above the prompt and a side pane with a live card per subagent. |
-| [model-router](plugins/model-router) | 0.1.0 | Haiku picks a model for each subagent before it starts (agent A on Sonnet, agent B on Opus), warns before Fable, and `/router` shows the estimated saving. |
+| [agent-deck](plugins/agent-deck) | 0.1.0 | A to-do progress band above the prompt and a side pane with a live card per subagent. |
+| [subagent-router](plugins/subagent-router) | 0.1.0 | Haiku picks a model for each subagent before it starts (agent A on Sonnet, agent B on Opus), warns before Fable, and `/router` shows the estimated saving. |
 
----
+## agent-deck
 
-## Preview
+- **Band:** a clay count of finished steps ("2/5"), the current step, one bar segment per step (done, running, queued), a "N working" or "Finished" pill, and tokens, cost and time.
+- **Pane:** the plan, then one card per agent with a pixel mascot, model chip (Haiku, Sonnet, Opus, Fable, each with its own color), elapsed time, a live progress bar and a Transcript link.
+- **Demo:** `/deck demo` runs four subagents on different models with no model call.
 
-Design reference images (dark theme). The terminal band follows these; surface fills and animations are approximated.
+![agent-deck: parallel subagents](images/agent-deck/01-dark-parallel.png)
+![agent-deck: review and tests](images/agent-deck/02-dark-review-and-tests.png)
+![agent-deck: finished](images/agent-deck/03-dark-finished.png)
 
-**orchestra-desk**
+## subagent-router
 
-![orchestra-desk: parallel subagents](images/orchestra/01-dark-parallel.png)
-![orchestra-desk: review and tests](images/orchestra/02-dark-review-and-tests.png)
-![orchestra-desk: finished](images/orchestra/03-dark-finished.png)
+- **Per-agent choice:** Haiku 5.5 reads each subagent's type, title and prompt and picks haiku, sonnet, opus or fable for that agent. Code-editing agents never go below Sonnet.
+- **Fable asks first:** you choose Fable, Opus instead, or cancel the agent.
+- **Saving estimate:** the band shows what each agent costs, the total saved against running everything on the session model, and `/router` gives the detail. In the demo, five agents cost $1.89 all on Fable and $0.76 routed: $1.12 saved (60%). This is an estimate, not a measurement.
+- **Review modes:** every spawn, each prompt, or once per session.
+- **Safe by default:** if the router fails, the agent keeps the session model. It never blocks a spawn.
 
-**model-router**
+![subagent-router: expanded, done](images/subagent-router/02-dark-expanded-done.png)
+![subagent-router: collapsed](images/subagent-router/03-dark-collapsed.png)
 
-![model-router: expanded, done](images/model-router/02-dark-expanded-done.png)
-![model-router: collapsed](images/model-router/03-dark-collapsed.png)
+Terminal layout:
+
+![Fable confirm](images/cli/03-dark-router-confirm.png)
+![Router done](images/cli/04-dark-router-done.png)
+![Router collapsed](images/cli/05-dark-router-collapsed.png)
+
+The images are design references. The terminal approximates them: surface fills, glow and animations are not reproduced.
 
 ---
 
@@ -114,7 +137,7 @@ Nothing below calls a model, except the one real run before a release.
 | --- | --- | --- | --- |
 | 0. Link the pack, once | shell | `scripts/dev.sh link` | free |
 | 1. Logic | shell | `scripts/dev.sh watch <mod>` | no session, no tokens |
-| 2. UI, live | terminal and Desktop | the mod's demo command, e.g. `/orchestra demo` | no tokens |
+| 2. UI, live | terminal and Desktop | the mod's demo command, e.g. `/deck demo` | no tokens |
 | 3. Manifest and types | shell | `scripts/dev.sh check <mod>` | free |
 | 4. Real events | any session | one real prompt | tokens; once per release |
 
@@ -134,7 +157,7 @@ Only the engine sends `tool.call`, `agent.spawn` and `turn.complete`, and only a
 
 | Mod | Command | Shows |
 | --- | --- | --- |
-| `orchestra-desk` | `/orchestra demo`, `/orchestra clear` | a 4-step plan and three subagent cards, about 16 seconds |
+| `agent-deck` | `/deck demo`, `/deck clear` | a 4-step plan and three subagent cards, about 16 seconds |
 
 To check from a shell that the engine loads a mod and runs its command, with no login and no model call:
 

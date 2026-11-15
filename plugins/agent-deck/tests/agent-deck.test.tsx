@@ -29,7 +29,7 @@ const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
 const RICH = ['desktop', 'vscode', 'mobile'] as const
 
 const BAND = {
-  plugin: 'orchestra-desk',
+  plugin: 'agent-deck',
   component: 'AbovePrompt',
   props: {
     hasSurvey: false,
@@ -43,11 +43,11 @@ const BAND = {
 } as const
 
 const PANE = {
-  plugin: 'orchestra-desk',
+  plugin: 'agent-deck',
   component: 'Pane',
-  requestId: 'orchestra-desk',
+  requestId: 'agent-deck',
   props: {
-    title: 'Orchestra',
+    title: 'Agent Deck',
     isFocused: false,
     bodyColumns: 44,
     placement: 'dock',
@@ -142,7 +142,7 @@ test('mascot: segments, base64 and the terminal cells', () => {
 // ---------------------------------------------------------------- band --
 
 test('the band shows to-do progress, on every surface', async ($, on) => {
-  on('command.register', () => ({ value: { command: 'orchestra' } }))
+  on('command.register', () => ({ value: { command: 'deck' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('tool.call', () => ({ result: {} }))
   mock.clock(on)
@@ -304,7 +304,7 @@ test('cards an earlier version stored are declined', async ($, on) => {
 // ---------------------------------------------------------------- demo --
 
 const COMMAND = {
-  command: 'orchestra',
+  command: 'deck',
   origin: { kind: 'composer' },
   presentation: { isFullscreen: false, columns: 80 },
 } as const
@@ -323,8 +323,8 @@ test('model: the demo runs from a first card to a finished plan', () => {
   expect(demoMain(21).tokens).toBe(24_000)
 })
 
-test('/orchestra demo plays with no model call, then clears', async ($, on) => {
-  on('command.register', () => ({ value: { command: 'orchestra' } }))
+test('/deck demo plays with no model call, then clears', async ($, on) => {
+  on('command.register', () => ({ value: { command: 'deck' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   const clockMock = mock.clock(on)
@@ -365,8 +365,8 @@ test('/orchestra demo plays with no model call, then clears', async ($, on) => {
   await empty.unmount()
 })
 
-test('/orchestra demo fail ends with a failed card', async ($, on) => {
-  on('command.register', () => ({ value: { command: 'orchestra' } }))
+test('/deck demo fail ends with a failed card', async ($, on) => {
+  on('command.register', () => ({ value: { command: 'deck' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   const clockMock = mock.clock(on)
