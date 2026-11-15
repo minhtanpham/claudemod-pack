@@ -4,7 +4,8 @@ A pack of [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overvi
 
 | Mod | Version | What it does |
 | --- | --- | --- |
-| _(in progress)_ | – | A to-do progress band above the prompt and a side pane with a live card per subagent. |
+| [orchestra-desk](plugins/orchestra-desk) | 0.1.0 | A to-do progress band above the prompt and a side pane with a live card per subagent. |
+| [model-router](plugins/model-router) | 0.1.0 | Haiku picks a model for each subagent before it starts (agent A on Sonnet, agent B on Opus), warns before Fable, and `/router` shows the estimated saving. |
 
 ---
 
@@ -58,6 +59,8 @@ The same actions are available from your shell as `claude plugin ...`.
 claudemod-pack/
 ├── .claude-plugin/
 │   └── marketplace.json        # the catalog: one entry per mod, with its source folder and version
+├── scripts/
+│   └── dev.sh                  # link / unlink / status / test / watch / check
 └── plugins/
     └── <mod>/                  # one folder per mod
         ├── .claude-plugin/
@@ -88,14 +91,39 @@ No Node.js install, bundler or build step is needed: Claude Code loads `.js`/`.t
 
 ### Development flow
 
-Work in this order. The early steps are fast and free; save the slower checks for the end.
+Nothing below calls a model, except the one real run before a release.
 
 | Step | Where | Command | Cost |
 | --- | --- | --- | --- |
-| 1. Logic | shell | `claude plugin test` | no session, no tokens |
-| 2. UI, live | terminal | `claude --plugin-dir ./plugins/<mod>` | hot reload on save |
-| 3. Manifest | shell | `claude plugin validate ./plugins/<mod>` | free |
-| 4. Desktop check | Desktop Code tab | install from the local marketplace | once per release |
+| 0. Link the pack, once | shell | `scripts/dev.sh link` | free |
+| 1. Logic | shell | `scripts/dev.sh watch <mod>` | no session, no tokens |
+| 2. UI, live | terminal and Desktop | the mod's demo command, e.g. `/orchestra demo` | no tokens |
+| 3. Manifest and types | shell | `scripts/dev.sh check <mod>` | free |
+| 4. Real events | any session | one real prompt | tokens; once per release |
+
+#### 0. Link the pack (once)
+
+```bash
+scripts/dev.sh link
+```
+
+This adds `plugins/` to `CLAUDE_CODE_PLUGIN_DIRS` in the `env` block of `~/.claude/settings.json` (a copy of the file is kept beside it as `settings.json.before-dev-link`). Every session started afterwards, in the terminal or by the Desktop app, loads every mod in this folder straight from the working tree and reloads it on save. A slash command that answers `Unknown command` means the session does not have the mod: it was started before the link, so open a new one.
+
+`scripts/dev.sh status` shows the link and `scripts/dev.sh unlink` removes it. Unlink when you are not developing, since linked mods run in all your sessions.
+
+#### The demo command (every mod has one)
+
+Only the engine sends `tool.call`, `agent.spawn` and `turn.complete`, and only a mod itself can write its own `$.state`, so no outside tool can feed a running mod made-up events. Each mod therefore carries its own demo: a slash command, answered by a `command.run` hook without `next`, that writes sample values through the same atoms the real hooks write. It runs locally and calls no model.
+
+| Mod | Command | Shows |
+| --- | --- | --- |
+| `orchestra-desk` | `/orchestra demo`, `/orchestra clear` | a 4-step plan and three subagent cards, about 16 seconds |
+
+To check from a shell that the engine loads a mod and runs its command, with no login and no model call:
+
+```bash
+claude --plugin-dir ./plugins/<mod> --debug-file /tmp/mod.log -p "/<command> demo" < /dev/null
+```
 
 #### 1. Unit tests (no session, no tokens)
 
@@ -146,7 +174,7 @@ Claude Code watches a folder loaded with `--plugin-dir` and **hot-reloads the ho
 
 If the same mod is also installed from the marketplace, the `--plugin-dir` copy takes precedence for that session. You don't need to uninstall it.
 
-To trigger UI cheaply, switch to `/model haiku` and ask for something like *"make a 4-step dummy to-do list, then run 2 Explore subagents that read README.md"*.
+To see the UI without a prompt, run the mod's demo command. The real events need one real prompt; keep it for last, on `/model haiku`: *"make a 4-step dummy to-do list, then run 2 Explore subagents that read README.md"*.
 
 #### 3. Validate
 
@@ -159,7 +187,7 @@ An `ICON_MISSING` warning is expected; it only matters for submitting to Anthrop
 
 #### 4. Check in the Desktop app (Code tab)
 
-The Desktop app has no `--plugin-dir`, so install the mod from the local clone as a marketplace:
+While developing, `scripts/dev.sh link` is enough: a new Desktop session loads the working tree. To check the mod as users get it, install it from the local clone as a marketplace:
 
 ```
 /plugin marketplace add ~/projects/claudemod-pack
