@@ -2,8 +2,6 @@
 
 **See what your subagents are doing, and pay less for them.** Two [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overview.md) that draw a live progress band above the prompt, give every subagent its own card, and pick the cheapest model that can do each job.
 
-![claudemod-pack demo](images/1116.gif)
-
 ```
 /plugin marketplace add minhtanpham/claudemod-pack
 /plugin install agent-deck@claudemod-pack
@@ -24,9 +22,7 @@ Each mod is a Claude Code plugin with a hooks module: JavaScript/TypeScript that
 - **Pane:** the plan, then one card per agent with a pixel mascot, model chip (Haiku, Sonnet, Opus, Fable, each with its own color), elapsed time, a live progress bar and a Transcript link.
 - **Demo:** `/deck demo` runs four subagents on different models with no model call.
 
-![agent-deck: parallel subagents](images/agent-deck/01-dark-parallel.png)
-![agent-deck: review and tests](images/agent-deck/02-dark-review-and-tests.png)
-![agent-deck: finished](images/agent-deck/03-dark-finished.png)
+![agent-deck demo](images/deck.gif)
 
 ## subagent-router
 
@@ -36,16 +32,7 @@ Each mod is a Claude Code plugin with a hooks module: JavaScript/TypeScript that
 - **Review modes:** every spawn, each prompt, or once per session.
 - **Safe by default:** if the router fails, the agent keeps the session model. It never blocks a spawn.
 
-![subagent-router: expanded, done](images/subagent-router/02-dark-expanded-done.png)
-![subagent-router: collapsed](images/subagent-router/03-dark-collapsed.png)
-
-Terminal layout:
-
-![Fable confirm](images/cli/03-dark-router-confirm.png)
-![Router done](images/cli/04-dark-router-done.png)
-![Router collapsed](images/cli/05-dark-router-collapsed.png)
-
-The images are design references. The terminal approximates them: surface fills, glow and animations are not reproduced.
+![subagent-router demo](images/router.gif)
 
 ---
 
