@@ -235,6 +235,30 @@ export const barSvg = (steps: readonly AgentDeckStep[], width: number): string =
 }
 
 
+/**
+ * A card's progress bar: a 6px rounded track under 8px of air, filled to `to`
+ * in the model's color. When `from` is lower it grows from there to `to`.
+ */
+export const progressSvg = (model: ModelKey, width: number, from: number, to: number): string => {
+  const clamp = (n: number) => Math.max(0, Math.min(1, n))
+  const min = 6
+  const px = (n: number) => Math.round(Math.max(min, width * clamp(n)) * 100) / 100
+  const end = px(to)
+  const start = px(from)
+  const grow =
+    start < end
+      ? `<animate attributeName="width" from="${start}" to="${end}" dur="0.8s" begin="0s" calcMode="spline" keyTimes="0;1" keySplines="0.22 0.61 0.36 1" fill="freeze"/>`
+      : ''
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 14" width="${width}" height="14">` +
+    `<style>.t{fill:#dedbd0}.f{fill:${MODEL_COLOR[model].light}}` +
+    `@media (prefers-color-scheme:dark){.t{fill:#3a3935}.f{fill:${MODEL_COLOR[model].dark}}}</style>` +
+    `<rect class="t" x="0" y="8" width="${width}" height="6" rx="3"/>` +
+    `<rect class="f" x="0" y="8" width="${end}" height="6" rx="3">${grow}</rect></svg>`
+  )
+}
+
 // --------------------------------------------------------------- pixels --
 
 const hex = (value: string): number => parseInt(value.slice(1), 16)

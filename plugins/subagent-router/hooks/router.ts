@@ -170,8 +170,8 @@ export const FABLE_HEADER = 'Fable needed'
 /** The status line under the prompt (design/cli 03, 04). */
 export function statusLine(t: Totals, isWaiting: boolean): string {
   return isWaiting
-    ? 'subagent-router · waiting for your OK'
-    : `subagent-router · ${money(Math.max(0, t.saved))} saved (${t.pct}%)`
+    ? 'waiting for your OK'
+    : `~${money(Math.max(0, t.saved))} saved (${t.pct}%)`
 }
 
 // --------------------------------------------------------------- usage --

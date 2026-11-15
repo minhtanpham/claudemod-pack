@@ -403,7 +403,7 @@ export const register: Register = (on, options) => {
           ? { fill: 'clay', border: 'clay' }
           : { fill: 'none', border: 'ring' },
     )
-    const savedText = `${money(Math.max(0, t.saved))} saved`
+    const savedText = `~${money(Math.max(0, t.saved))} saved${waiting ? ' so far' : ''}`
     const headLook: MascotLook = isFinished ? 'done' : 'running'
 
     // ----------------------------------------------------- terminal --
@@ -418,7 +418,7 @@ export const register: Register = (on, options) => {
       else if (reviewing) word = `reviewing ${reviewing.type}…`
       else if (isFinished) word = `${t.agents + t.cancelled} routed`
       if (off && began < 0) word = 'paused (/router on)'
-      const right = `${money(t.saved)} saved`
+      const right = `~${money(t.saved)} saved${waiting ? ' so far' : ''}`
 
       const head = (
         <Box flexDirection="row" justifyContent="space-between" width={columns}>
@@ -539,7 +539,7 @@ export const register: Register = (on, options) => {
             {`${baseName}-only ${money(t.baseline)} → router ${money(t.total)}   `}
           </Text>
           <Text color="success" bold>
-            saved {money(t.saved)} ({t.pct}%)
+            saved ~{money(t.saved)} ({t.pct}%)
           </Text>
         </Box>
       )
@@ -635,8 +635,7 @@ export const register: Register = (on, options) => {
         <Button
           key="toggle"
           plain
-          dimColor
-          label={open ? '▾' : '▴'}
+          label={open ? 'Hide ▴' : 'Show ▾'}
           onPress={async () => {
             await update($, isOpen, v => !v)
           }}
@@ -651,7 +650,7 @@ export const register: Register = (on, options) => {
     // Columns: mascot | name | reason | chip | price. The reason gives way
     // first, so the chip and the price stay in view on a narrow band.
     const W = isRich
-      ? { mascot: 4, name: 18, chip: 16, price: 14 }
+      ? { mascot: 4, name: 18, chip: 18, price: 14 }
       : { mascot: 3, name: 18, chip: 12, price: 14 }
     const fixed = W.mascot + W.name + W.chip + W.price + 4 + 2
     const reasonRoom = columns - fixed
@@ -832,7 +831,7 @@ export const register: Register = (on, options) => {
     )
 
     const strip = (
-      <Box flexDirection="row" gap={2} alignItems="center" paddingX={1}>
+      <Box flexDirection="row" gap={2} alignItems="center" paddingX={1} paddingTop={1}>
         <Box flexDirection="column" width={19}>
           <Text color="success" bold weight="bold" size="caption">
             ESTIMATED SAVING
@@ -855,15 +854,9 @@ export const register: Register = (on, options) => {
 
     // ---------------------------------------------------------- footer --
 
-    const note = `Fable always asks first · Sonnet floor for code edits · falls back to the session model if the router fails · includes ${money(t.overhead)} router cost, list prices`
     const footer = (
-      <Box flexDirection="row" gap={2} alignItems="center" paddingX={1}>
-        <Box flexGrow={1}>
-          <Text dimColor size="caption" wrap={isRich ? 'wrap' : 'truncate'}>
-            {isRich ? note : clip(note, Math.max(10, columns - 40))}
-          </Text>
-        </Box>
-        <Box flexDirection="row" gap={1} {...(isRich ? { borderStyle: 'round' } : {})}>
+      <Box flexDirection="row" justifyContent="flex-end" paddingX={1}>
+        <Box flexDirection="row" gap={2}>
           {MODES.map(m => (
             <Button
               key={`mode-${m.id}`}
@@ -880,9 +873,9 @@ export const register: Register = (on, options) => {
     )
 
     return (
-      <Box flexDirection="column" gap={isRich ? 1 : 0}>
+      <Box flexDirection="column">
         {header}
-        <Box flexDirection="column">{rows.map(rowView)}</Box>
+        <Box flexDirection="column" gap={isRich ? 1 : 0}>{rows.map(rowView)}</Box>
         {strip}
         {footer}
       </Box>

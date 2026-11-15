@@ -44,6 +44,7 @@ import {
   barSegments,
   badgeSvg,
   barSvg,
+  progressSvg,
   chipSvg,
   tileSvg,
   CELL_COLUMNS,
@@ -166,8 +167,7 @@ export const register: Register = (on, options) => {
         try {
           const t0 = await read($, demo)
           const cards = await read($, agents)
-          const isLive =
-            t0 >= 0 || countRunning(cards) > 0 || (await read($, busy))
+          const isLive = t0 >= 0 || countRunning(cards) > 0 || (await read($, busy))
           if (!isLive) return
           const at = await $.clock.now()
           if (t0 >= 0) await paintDemo($, t0, at)
@@ -330,11 +330,7 @@ export const register: Register = (on, options) => {
         const id = e.agentId
         const at = await $.clock.now()
         const status =
-          e.reason === 'answer'
-            ? 'done'
-            : e.reason === 'aborted'
-              ? 'stopped'
-              : 'failed'
+          e.reason === 'answer' ? 'done' : e.reason === 'aborted' ? 'stopped' : 'failed'
         const summary = firstLine(e.answer ?? '', 160)
         await update($, now, () => at)
         await update($, agents, list =>
@@ -397,8 +393,8 @@ export const register: Register = (on, options) => {
     const status: AgentDeckAgentStatus = band.isFinished ? 'done' : 'running'
     const segments = barSegments(list)
     const columns = Math.max(20, e.props.bodyColumns)
-    const room = Math.max(8, columns - 60)
-    const barWidth = Math.min(360, Math.max(120, columns * 3 - 140))
+    const room = Math.max(8, columns - 48)
+    const barWidth = Math.min(1600, Math.max(120, Math.round(columns * 9.2 - 40)))
 
     const mascot =
       'Svg' in T ? (
@@ -439,48 +435,58 @@ export const register: Register = (on, options) => {
       )
 
     return (
-      <Box flexDirection="row" gap={2} alignItems="center" paddingY={0}>
-        {mascot}
-        {list.length > 0 && (
-          <Box flexDirection="row" alignItems="flex-end">
-            <Text color="claude" size="title" weight="bold" tabular>
-              {band.done}
-            </Text>
-            <Text dimColor weight="bold" tabular>
-              /{band.total}
-            </Text>
-          </Box>
-        )}
-        <Text bold wrap="truncate">
-          {clip(band.label, room)}
-        </Text>
-        {list.length > 0 && bar}
-        {band.working > 0 ? (
-          <Box paddingX={1}>
-            <Button
-              key="agents"
-              plain
-              label={`${band.working} working`}
-              onPress={async () => {
-                await $.ui.open({ id: PANE, title: TITLE, columns: DOCK_COLUMNS })
-              }}
-            />
-          </Box>
-        ) : (
-          <Box paddingX={1}>
-            <Text color="claude" bold>
-              Finished
+      <Box flexDirection="column" gap={1} paddingY={0}>
+        <Box flexDirection="row" justifyContent="space-between" alignItems="center" paddingY={0}>
+          <Box flexDirection="row" gap={2} alignItems="center">
+            {mascot}
+            {list.length > 0 && (
+              <Box flexDirection="row" alignItems="flex-end">
+                <Text color="claude" size="title" weight="bold" tabular>
+                  {band.done}
+                </Text>
+                <Text dimColor weight="bold" tabular>
+                  /{band.total}
+                </Text>
+              </Box>
+            )}
+            <Text bold wrap="truncate">
+              {clip(band.label, room)}
             </Text>
           </Box>
-        )}
-        <Box flexDirection="column" alignItems="flex-end">
-          <Text dimColor mono tabular size="footnote">
-            {kfmt(band.tokens)} tok
-          </Text>
-          <Text dimColor mono tabular size="footnote">
-            {money(band.cost)} · {clock(band.elapsedMs)}
-          </Text>
+          <Box flexDirection="row" gap={2} alignItems="center">
+            {band.working > 0 ? (
+              <Box paddingX={1}>
+                <Button
+                  key="agents"
+                  plain
+                  label={`${band.working} working`}
+                  onPress={async () => {
+                    await $.ui.open({
+                      id: PANE,
+                      title: TITLE,
+                      columns: DOCK_COLUMNS,
+                    })
+                  }}
+                />
+              </Box>
+            ) : (
+              <Box paddingX={1}>
+                <Text color="claude" bold>
+                  Finished
+                </Text>
+              </Box>
+            )}
+            <Box flexDirection="column" alignItems="flex-end">
+              <Text dimColor mono tabular size="footnote">
+                {kfmt(band.tokens)} tok
+              </Text>
+              <Text dimColor mono tabular size="footnote">
+                {money(band.cost)} · {clock(band.elapsedMs)}
+              </Text>
+            </Box>
+          </Box>
         </Box>
+        {list.length > 0 && bar}
       </Box>
     )
   })
@@ -625,9 +631,7 @@ export const register: Register = (on, options) => {
         </Box>
 
         {isEmpty && (
-          <Text dimColor>
-            No subagents yet. Each one Claude starts gets a live card here.
-          </Text>
+          <Text dimColor>No subagents yet. Each one Claude starts gets a live card here.</Text>
         )}
         {isEmpty && (
           <Button
@@ -734,14 +738,32 @@ export const register: Register = (on, options) => {
                     </Text>
                   )}
                 </Box>
-                {isLive && (
-                  <Progress
-                    label={`${card.name} progress`}
-                    value={card.progress}
-                    max={1}
-                    color={MODEL_COLOR[card.modelKey].dark}
-                  />
-                )}
+                {isLive &&
+                  ('Svg' in T ? (
+                    <Box flexDirection="row" gap={1} alignItems="center">
+                      <T.Svg
+                        source={progressSvg(
+                          card.modelKey,
+                          Math.max(80, Math.min(520, Math.round(textWidth * 6.2))),
+                          ...growth(card.id, card.progress),
+                        )}
+                        alt={`${card.name} progress ${Math.round(card.progress * 100)}%`}
+                        width={Math.max(80, Math.min(520, Math.round(textWidth * 6.2)))}
+                        height={14}
+                        isInteractive
+                      />
+                      <Text dimColor tabular size="caption">
+                        {Math.round(card.progress * 100)}%
+                      </Text>
+                    </Box>
+                  ) : (
+                    <Progress
+                      label={`${card.name} progress`}
+                      value={card.progress}
+                      max={1}
+                      color={MODEL_COLOR[card.modelKey].dark}
+                    />
+                  ))}
               </Box>
             </Box>
           )
@@ -751,11 +773,19 @@ export const register: Register = (on, options) => {
   })
 }
 
+/** Per card: where its bar was and where it is, so a bar that grew eases from the old width. */
+const bars = new Map<string, { from: number; to: number }>()
+const growth = (id: string, value: number): [number, number] => {
+  const seen = bars.get(id)
+  if (!seen) bars.set(id, { from: 0, to: value })
+  else if (seen.to !== value) bars.set(id, { from: seen.to, to: value })
+  const now = bars.get(id)!
+
+  return [now.from, now.to]
+}
+
 /** The model the main agent runs on: the demo's while it shows, else the session's. */
-const mainModelOf = async (
-  $: Dollar,
-  cards: readonly { id: string }[],
-): Promise<string> => {
+const mainModelOf = async ($: Dollar, cards: readonly { id: string }[]): Promise<string> => {
   if (cards.some(one => isDemoId(one.id))) return DEMO_MAIN_MODEL
   try {
     return await $.session.model()

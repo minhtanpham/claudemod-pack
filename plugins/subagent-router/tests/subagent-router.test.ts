@@ -251,9 +251,9 @@ test('Esc on the Fable question cancels the agent; with nobody to ask it runs on
 
 test('the status line carries the saving, or the wait for an OK', () => {
   const t = totals([], 0)
-  expect(router.statusLine({ ...t, saved: 1.12, pct: 60 }, false)).toBe('subagent-router · $1.12 saved (60%)')
-  expect(router.statusLine({ ...t, saved: -2.45, pct: 0 }, false)).toBe('subagent-router · $0.000 saved (0%)')
-  expect(router.statusLine(t, true)).toBe('subagent-router · waiting for your OK')
+  expect(router.statusLine({ ...t, saved: 1.12, pct: 60 }, false)).toBe('~$1.12 saved (60%)')
+  expect(router.statusLine({ ...t, saved: -2.45, pct: 0 }, false)).toBe('~$0.000 saved (0%)')
+  expect(router.statusLine(t, true)).toBe('waiting for your OK')
 })
 
 test('Use Fable runs it on Fable, past the Opus ceiling', async ($, on) => {
@@ -296,7 +296,6 @@ test('the band shows the header, row, strip and switch on every rich surface', a
     expect(await ui.find({ type: 'Text', text: 'ESTIMATED SAVING' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /All on Fable 5\.2/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /−99%/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /Fable always asks first/ })).toBeDefined()
     expect(await ui.find({ type: 'Button', key: 'mode-prompt' })).toBeDefined()
     await ui.unmount()
   }
@@ -310,13 +309,13 @@ test('the terminal band is the design/cli panel: rule, header, rows, summary, fo
   expect((await ui.find({ type: 'Text', text: /^─+$/ }))?.text).toHaveLength(92)
   expect(await ui.find({ type: 'Text', text: 'Subagent Router' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^ {2}1 routed$/ })).toBeDefined()
-  expect((await ui.find({ type: 'Text', text: /saved {2}$/ }))?.text).toMatch(/^\$0\.\d\d saved {2}$/)
+  expect((await ui.find({ type: 'Text', text: /saved {2}$/ }))?.text).toMatch(/^~\$0\.\d\d saved {2}$/)
   expect(await ui.find({ type: 'Text', text: 'Explore' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: 'Haiku 5.5' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: 'read-only search' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '−99%' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^Fable-only \$0\.\d\d → router \$0\.\d+ {3}$/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^saved \$0\.\d\d \(\d+%\)$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^saved ~\$0\.\d\d \(\d+%\)$/ })).toBeDefined()
   expect((await ui.find({ type: 'Button', key: 'mode' }))?.text).toBe('Every spawn')
   expect(await ui.find({ type: 'Text', text: ' · Fable asks first · Sonnet floor for code edits' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: 'ESTIMATED SAVING' })).toBeUndefined()
@@ -331,9 +330,9 @@ test('the chevron collapses the band to its header', async ($, on) => {
   await start($)
   await $.agent.spawn(SPAWN as any)
   const ui = await $.ui.mount(band('desktop'))
-  expect((await ui.find({ type: 'Button', key: 'toggle' }))?.text).toBe('▾')
+  expect((await ui.find({ type: 'Button', key: 'toggle' }))?.text).toBe('Hide ▴')
   await ui.press({ key: 'toggle' })
-  expect((await ui.find({ type: 'Button', key: 'toggle' }))?.text).toBe('▴')
+  expect((await ui.find({ type: 'Button', key: 'toggle' }))?.text).toBe('Show ▾')
   expect(await ui.find({ type: 'Text', text: 'ESTIMATED SAVING' })).toBeUndefined()
   await ui.unmount()
 })
