@@ -6,13 +6,17 @@ import type { OrchestraAgentStatus, OrchestraRole, OrchestraStep } from '../type
 export const COLS = 22
 export const ROWS = 18
 
+// The terminal's cells carry one fixed color each and know no light or dark, so
+// those use mid tones that read on either background. The SVG (desktop) swaps
+// the neutral ones with the surface's own scheme through `prefers-color-scheme`.
 const INK = '#1a1918'
 const CREAM = '#faf9f5'
-const HAT = '#e8c36a'
+const HAT = '#d6a93f'
 const SLEEP = '#5c5a55'
 const ZZ = '#9b998f'
+/** Neutral for the terminal's cells: legible on a white and on a black screen. */
+const MID = '#8a887f'
 
-export const MUTED = '#9b998f'
 export const ORANGE = '#d97757'
 export const TRACK = '#3a3935'
 
@@ -20,6 +24,7 @@ type Rect = readonly [number, number, number, number]
 
 const bodyFill = (status: OrchestraAgentStatus, color: string): string =>
   status === 'queued' ? SLEEP : color
+const sleepy = (status: OrchestraAgentStatus): string => (status === 'queued' ? ' class="sleep"' : '')
 
 const eyes = (status: OrchestraAgentStatus): 'open' | 'happy' | 'x' =>
   status === 'done' ? 'happy' : status === 'failed' || status === 'stopped' ? 'x' : 'open'
@@ -43,6 +48,18 @@ const STYLE = `<style>
 @keyframes blink{0%,90%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
 @keyframes zz{0%{opacity:1}50%{opacity:.25}}
 @keyframes shake{0%{transform:translateX(0)}50%{transform:translateX(-1px)}}
+.acc{fill:#6b6a63}
+.accS{stroke:#6b6a63}
+.sleep{fill:#c9c7bc}
+.zzc{fill:#6b6a63}
+.track{fill:#e5e2d8}
+@media (prefers-color-scheme:dark){
+.acc{fill:#faf9f5}
+.accS{stroke:#faf9f5}
+.sleep{fill:#5c5a55}
+.zzc{fill:#9b998f}
+.track{fill:#3a3935}
+}
 </style>`
 
 /** The mascot as an SVG that animates itself; draw it with `isInteractive`. */
@@ -57,15 +74,15 @@ export const mascotSvg = (
   const cls = status === 'stopped' ? 'failed' : status
   const parts: string[] = []
   if (role === 'explore') {
-    parts.push(rect([10, 1, 2, 2], CREAM), rect([9, 0, 4, 1], CREAM))
+    parts.push(rect([10, 1, 2, 2], CREAM, ' class="acc"'), rect([9, 0, 4, 1], CREAM, ' class="acc"'))
   }
   if (role === 'tester') {
     parts.push(rect([5, 1, 12, 2], HAT), rect([8, 0, 6, 1], HAT))
   }
   parts.push(
-    rect([3, 3, 16, 8], fill),
-    rect([0, 6, 3, 3], fill),
-    rect([19, 6, 3, 3], fill),
+    rect([3, 3, 16, 8], fill, sleepy(status)),
+    rect([0, 6, 3, 3], fill, sleepy(status)),
+    rect([19, 6, 3, 3], fill, sleepy(status)),
   )
   if (look === 'open') {
     parts.push(
@@ -81,16 +98,16 @@ export const mascotSvg = (
   }
   if (role === 'reviewer') {
     parts.push(
-      `<rect x="5" y="4" width="4" height="5" fill="none" stroke="${CREAM}" stroke-width="0.7"/>`,
-      `<rect x="13" y="4" width="4" height="5" fill="none" stroke="${CREAM}" stroke-width="0.7"/>`,
-      rect([9, 6, 4, 0.7], CREAM),
+      `<rect x="5" y="4" width="4" height="5" fill="none" stroke="${CREAM}" stroke-width="0.7" class="accS"/>`,
+      `<rect x="13" y="4" width="4" height="5" fill="none" stroke="${CREAM}" stroke-width="0.7" class="accS"/>`,
+      rect([9, 6, 4, 0.7], CREAM, ' class="acc"'),
     )
   }
   const legsA = [[4, 11, 2, 4], [8, 11, 2, 2], [12, 11, 2, 4], [16, 11, 2, 2]] as const
   const legsB = [[4, 11, 2, 2], [8, 11, 2, 4], [12, 11, 2, 2], [16, 11, 2, 4]] as const
   const zz =
     status === 'queued'
-      ? `<g class="zz" fill="${ZZ}">${rect([18, 0, 3, 1], ZZ)}${rect([19, 1, 1, 1], ZZ)}${rect([18, 2, 3, 1], ZZ)}</g>`
+      ? `<g class="zz">${rect([18, 0, 3, 1], ZZ, ' class="zzc"')}${rect([19, 1, 1, 1], ZZ, ' class="zzc"')}${rect([18, 2, 3, 1], ZZ, ' class="zzc"')}</g>`
       : ''
   const height = Math.round((px * ROWS) / COLS)
 
@@ -98,8 +115,8 @@ export const mascotSvg = (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${COLS} ${ROWS}" width="${px}" height="${height}" shape-rendering="crispEdges" class="${cls}" style="overflow:visible">` +
     STYLE +
     `<g class="bob">${parts.join('')}</g>` +
-    `<g class="legA">${legsA.map(r => rect(r, fill)).join('')}</g>` +
-    `<g class="legB">${legsB.map(r => rect(r, fill)).join('')}</g>` +
+    `<g class="legA">${legsA.map(r => rect(r, fill, sleepy(status))).join('')}</g>` +
+    `<g class="legB">${legsB.map(r => rect(r, fill, sleepy(status))).join('')}</g>` +
     zz +
     `</svg>`
   )
@@ -131,13 +148,15 @@ export const barSvg = (segments: readonly Segment[], width: number): string => {
     .map((s, i) => {
       const x = i * (w + gap)
       const fill = s === 'done' ? ORANGE : s === 'run' ? 'url(#st)' : TRACK
+      const extra = s === 'wait' ? ' class="track"' : ''
 
-      return `<rect x="${x}" y="0" width="${w}" height="${h}" rx="2" fill="${fill}"/>`
+      return `<rect x="${x}" y="0" width="${w}" height="${h}" rx="2" fill="${fill}"${extra}/>`
     })
     .join('')
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${h}" width="${width}" height="${h}">` +
+    `<style>.track{fill:#e5e2d8}@media (prefers-color-scheme:dark){.track{fill:#3a3935}}</style>` +
     `<defs><pattern id="st" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
     `<rect width="8" height="8" fill="${ORANGE}"/><rect width="4" height="8" fill="#f0a78d"/>` +
     `<animateTransform attributeName="patternTransform" type="translate" additive="sum" from="0 0" to="8 0" dur="0.6s" repeatCount="indefinite"/>` +
@@ -169,9 +188,9 @@ export const mascotPixels = (
   frame: number,
 ): Grid => {
   const g = blank()
-  const fill = hex(bodyFill(status, color))
+  const fill = hex(status === 'queued' ? MID : color)
   const ink = hex(INK)
-  const cream = hex(CREAM)
+  const cream = hex(MID)
   const isRun = status === 'running'
   const up = isRun && frame % 2 === 1 ? -1 : 0
   const at = ([x, y, w, h]: Rect): Rect => [x, y + up, w, h]
@@ -215,9 +234,9 @@ export const mascotPixels = (
   for (const x of long) paint(g, [x, 11, 2, 4], fill)
   for (const x of short) paint(g, [x, 11, 2, 2], fill)
   if (status === 'queued' && frame % 2 === 0) {
-    paint(g, [18, 0, 3, 1], hex(ZZ))
-    paint(g, [19, 1, 1, 1], hex(ZZ))
-    paint(g, [18, 2, 3, 1], hex(ZZ))
+    paint(g, [18, 0, 3, 1], hex(MID))
+    paint(g, [19, 1, 1, 1], hex(MID))
+    paint(g, [18, 2, 3, 1], hex(MID))
   }
 
   return g

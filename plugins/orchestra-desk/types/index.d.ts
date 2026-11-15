@@ -67,6 +67,8 @@ declare module 'claude-code' {
       demoFail: Shaped<boolean>
       /** When the work on this plan began; -1 while none has. */
       started: Shaped<number>
+      /** Whether the main agent is in a turn now. */
+      busy: Shaped<boolean>
     }
   }
 }

@@ -42,8 +42,6 @@ import {
   CELL_ROWS,
   mascotCells,
   mascotSvg,
-  MUTED,
-  ORANGE,
 } from './mascot'
 
 const PANE = 'orchestra-desk'
@@ -72,6 +70,10 @@ const demo = atom({ plugin: 'orchestra-desk', key: 'demo' } as const, -1, {
 const demoFail = atom({ plugin: 'orchestra-desk', key: 'demoFail' } as const, false, {
   shape: 'demo-fail-1',
 })
+// Whether the main agent is in a turn now; false between turns.
+const busy = atom({ plugin: 'orchestra-desk', key: 'busy' } as const, false, {
+  shape: 'busy-1',
+})
 // When work began, for the band's clock; -1 while none has.
 const started = atom({ plugin: 'orchestra-desk', key: 'started' } as const, -1, {
   shape: 'started-1',
@@ -86,6 +88,7 @@ const paintDemo = async ($: Dollar, t0: number, at: number) => {
   await update($, now, () => at)
   await update($, steps, () => demoSteps(t))
   await update($, main, () => demoMain(t))
+  await update($, busy, () => t < DEMO_SECONDS)
   await update($, agents, list => [
     ...list.filter(one => !isDemoId(one.id)),
     ...demoAgents(t, t0, isFail),
@@ -110,6 +113,7 @@ const clearAll = async ($: Dollar) => {
   await update($, agents, () => [])
   await update($, main, () => ({ tools: 0, tokens: 0 }))
   await update($, started, () => -1)
+  await update($, busy, () => false)
 }
 
 /** Marks the moment work began, once. */
@@ -119,20 +123,19 @@ const begin = async ($: Dollar, at: number) => {
 
 const SPIN = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 
-const STATUS_COLOR: Record<OrchestraAgentStatus, string> = {
-  running: ORANGE,
-  queued: MUTED,
-  done: '#8fa874',
-  failed: '#e0605a',
-  stopped: MUTED,
+// Theme keys, not hex: the terminal and the desktop app resolve them against
+// the person's own light or dark theme, so the colors stay legible in both.
+const STATUS_COLOR: Record<OrchestraAgentStatus, 'claude' | 'inactive' | 'success' | 'error'> = {
+  running: 'claude',
+  queued: 'inactive',
+  done: 'success',
+  failed: 'error',
+  stopped: 'inactive',
 }
 
-const STATUS_BG: Record<OrchestraAgentStatus, string> = {
-  running: '#3a2a22',
-  queued: '#2e2d2a',
-  done: '#26301f',
-  failed: '#3b2321',
-  stopped: '#2e2d2a',
+const STATUS_BG: Partial<Record<OrchestraAgentStatus, 'diffAddedDimmed' | 'diffRemovedDimmed'>> = {
+  done: 'diffAddedDimmed',
+  failed: 'diffRemovedDimmed',
 }
 
 const BAR_CHARS = { done: '━━━', run: '╍╍╍', wait: '───' } as const
@@ -152,12 +155,8 @@ export const register: Register = (on, options) => {
         try {
           const t0 = await read($, demo)
           const cards = await read($, agents)
-          const list = await read($, steps)
-          const since = await read($, started)
           const isLive =
-            t0 >= 0 ||
-            countRunning(cards) > 0 ||
-            (since >= 0 && !progressOf(list).isFinished)
+            t0 >= 0 || countRunning(cards) > 0 || (await read($, busy))
           if (!isLive) return
           const at = await $.clock.now()
           if (t0 >= 0) await paintDemo($, t0, at)
@@ -219,6 +218,7 @@ export const register: Register = (on, options) => {
     try {
       const at = await $.clock.now()
       await begin($, at)
+      if (!e.agentId) await update($, busy, () => true)
     } catch {
       // Tracking never stands in a tool call's way.
     }
@@ -295,6 +295,11 @@ export const register: Register = (on, options) => {
       if (e.agentId) {
         const id = e.agentId
         await update($, agents, list => settleAgent(list, id, 'running', at))
+      } else {
+        await update($, busy, () => true)
+      }
+      if (e.agentId) {
+        // nothing more for a subagent
       } else if (progressOf(await read($, steps)).isFinished) {
         // A finished plan stays for the turn that finished it, then goes.
         await update($, steps, () => [])
@@ -323,8 +328,31 @@ export const register: Register = (on, options) => {
         await update($, agents, list =>
           settleAgent(addTokens(list, id, tokens), id, status, at, summary),
         )
-      } else if (tokens > 0) {
-        await update($, main, m => ({ ...m, tokens: m.tokens + tokens }))
+      } else {
+        await update($, busy, () => false)
+        if (tokens > 0) {
+          await update($, main, m => ({ ...m, tokens: m.tokens + tokens }))
+        }
+      }
+    } catch {
+      // As above.
+    }
+
+    return next(e)
+  })
+
+  // A new prompt starts a new task: what the last one left (an unfinished
+  // plan, its totals and clock) would only mislead, so it goes. Running
+  // subagents and a playing demo stay.
+  on('prompt.submit', async ($, e, next) => {
+    try {
+      const isCommand = e.text.trim().startsWith('/')
+      const cards = await read($, agents)
+      if (!isCommand && (await read($, demo)) < 0 && countRunning(cards) === 0) {
+        await update($, steps, () => [])
+        await update($, agents, () => [])
+        await update($, main, () => ({ tools: 0, tokens: 0 }))
+        await update($, started, () => -1)
       }
     } catch {
       // As above.
@@ -342,11 +370,12 @@ export const register: Register = (on, options) => {
     const m = await read($, main)
     const at = await read($, now)
     const since = await read($, started)
+    const isBusy = await read($, busy)
     if (list.length === 0 && cards.length === 0) return next(e)
 
     const T = $.ui.resolve(e)
     const { Box, Text, Button } = T
-    const band = bandOf(list, cards, m, at, since)
+    const band = bandOf(list, cards, m, at, since, isBusy)
     const frame = Math.floor(at / 500)
     const status: OrchestraAgentStatus = band.isFinished ? 'done' : 'running'
     const count = `${band.done}/${band.total}`
@@ -364,7 +393,7 @@ export const register: Register = (on, options) => {
           isInteractive
         />
       ) : (
-        <Text color={ORANGE} bold>
+        <Text color="claude" bold>
           {bandGlyph(status, frame)}
         </Text>
       )
@@ -382,7 +411,7 @@ export const register: Register = (on, options) => {
         <Box flexDirection="row" gap={1}>
           {segments.map(s => (
             <Text
-              color={s === 'wait' ? 'inactive' : ORANGE}
+              color={s === 'wait' ? 'inactive' : 'claude'}
               dimColor={s === 'wait'}
               bold={s === 'run'}
             >
@@ -396,7 +425,7 @@ export const register: Register = (on, options) => {
       <Box flexDirection="row" gap={2} alignItems="center" paddingY={0}>
         {mascot}
         {list.length > 0 && (
-          <Text color={ORANGE} bold tabular>
+          <Text color="claude" bold tabular>
             {count}
           </Text>
         )}
@@ -405,7 +434,7 @@ export const register: Register = (on, options) => {
         </Text>
         {list.length > 0 && bar}
         {band.working > 0 && (
-          <Box backgroundColor={STATUS_BG.running} paddingX={1}>
+          <Box paddingX={1}>
             <Button
               key="agents"
               plain
@@ -441,6 +470,7 @@ export const register: Register = (on, options) => {
     const m = await read($, main)
     const at = await read($, now)
     const since = await read($, started)
+    const isBusy = await read($, busy)
     const progress = progressOf(list)
     const running = countRunning(subs)
     const ended = countEnded(subs)
@@ -460,7 +490,7 @@ export const register: Register = (on, options) => {
     if (e.props.placement === 'widget') {
       return (
         <Box flexDirection="column">
-          <Text color={running > 0 ? ORANGE : 'inactive'} bold={running > 0}>
+          <Text color={running > 0 ? 'claude' : 'inactive'} bold={running > 0}>
             {running > 0 ? '●' : '○'} {tally || 'No subagents'}
           </Text>
           {list.length > 0 && (
@@ -490,14 +520,14 @@ export const register: Register = (on, options) => {
         />
       )
 
-    const cards = isEmpty ? [] : buildCards(list, subs, m, at, since)
+    const cards = isEmpty ? [] : buildCards(list, subs, m, at, since, isBusy)
 
     return (
       <Box flexDirection="column" gap={1}>
         {list.length > 0 && (
           <Box flexDirection="column">
             <Box flexDirection="row" gap={1}>
-              <Text color={ORANGE} bold>
+              <Text color="claude" bold>
                 Plan
               </Text>
               <Text dimColor tabular>
@@ -507,7 +537,7 @@ export const register: Register = (on, options) => {
             {list.map(step => (
               <Box flexDirection="row" gap={1}>
                 <Text
-                  color={step.status === 'pending' ? 'inactive' : ORANGE}
+                  color={step.status === 'pending' ? 'inactive' : 'claude'}
                   dimColor={step.status === 'completed'}
                 >
                   {step.status === 'completed'
@@ -529,7 +559,7 @@ export const register: Register = (on, options) => {
         )}
 
         <Box flexDirection="row" gap={1}>
-          <Text color={ORANGE} bold>
+          <Text color="claude" bold>
             Agents
           </Text>
           {tally !== '' && <Text dimColor>{tally}</Text>}
@@ -560,7 +590,7 @@ export const register: Register = (on, options) => {
               flexDirection="row"
               gap={1}
               borderStyle="round"
-              borderColor={isLive ? ORANGE : 'inactive'}
+              borderColor={isLive ? 'claude' : 'inactive'}
               borderDimColor={!isLive}
               paddingX={1}
             >

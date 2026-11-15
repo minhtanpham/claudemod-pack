@@ -5,6 +5,7 @@ A pack of [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overvi
 | Mod | Version | What it does |
 | --- | --- | --- |
 | [orchestra-desk](plugins/orchestra-desk) | 0.1.0 | A to-do progress band above the prompt and a side pane with a live card per subagent. |
+| [model-router](plugins/model-router) | 0.1.0 | Haiku picks a model for each subagent before it starts (agent A on Sonnet, agent B on Opus), warns before Fable, and `/router` shows the estimated saving. |
 
 ---
 

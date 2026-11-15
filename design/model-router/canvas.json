@@ -1,0 +1,51 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "ModelRouter.dc.html": {
+      "h": 640,
+      "title": "Model Router, dark",
+      "w": 1200,
+      "x": 0,
+      "y": 0,
+      "is_interactive": true
+    },
+    "ModelRouterLight.dc.html": {
+      "h": 640,
+      "title": "Model Router, light",
+      "w": 1200,
+      "x": 0,
+      "y": 720,
+      "is_interactive": true
+    },
+    "Mascot.dc.html": {
+      "h": 140,
+      "title": "Mascot",
+      "w": 160,
+      "x": 1280,
+      "y": 0
+    },
+    "Palette.dc.html": {
+      "h": 900,
+      "title": "Shared color system",
+      "w": 760,
+      "x": 1280,
+      "y": 220
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-15T17:05:05.035Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {},
+  "notes": {},
+  "order": [
+    "ModelRouter.dc.html",
+    "ModelRouterLight.dc.html",
+    "Mascot.dc.html",
+    "Palette.dc.html"
+  ],
+  "pages": [],
+  "title": "Model Router"
+}

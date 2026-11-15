@@ -5,11 +5,11 @@
     "Artboard-ax7a.dc.html": {
       "h": 860,
       "handmade": true,
-      "title": "Orchestra Desk, live",
+      "is_interactive": true,
+      "title": "Orchestra Desk, dark",
       "w": 1440,
       "x": 0,
-      "y": 0,
-      "is_interactive": true
+      "y": 0
     },
     "Mascot.dc.html": {
       "h": 140,
@@ -19,11 +19,44 @@
       "y": 0
     },
     "States.dc.html": {
-      "h": 620,
+      "h": 560,
       "title": "Mascot roles and states",
-      "w": 760,
+      "w": 1280,
       "x": 1520,
       "y": 260
+    },
+    "ModelRouter.dc.html": {
+      "h": 640,
+      "title": "Model Router, dark",
+      "w": 1200,
+      "x": 0,
+      "y": 0,
+      "is_interactive": true,
+      "page": "page-2"
+    },
+    "OrchestraLight.dc.html": {
+      "h": 860,
+      "title": "Orchestra Desk, light",
+      "w": 1440,
+      "x": 0,
+      "y": 940,
+      "is_interactive": true
+    },
+    "Palette.dc.html": {
+      "h": 900,
+      "title": "Shared color system",
+      "w": 760,
+      "x": 1520,
+      "y": 940
+    },
+    "ModelRouterLight.dc.html": {
+      "h": 640,
+      "title": "Model Router, light",
+      "w": 1200,
+      "x": 0,
+      "y": 720,
+      "is_interactive": true,
+      "page": "page-2"
     }
   },
   "createdOnFiles": {
@@ -36,8 +69,21 @@
   "order": [
     "Artboard-ax7a.dc.html",
     "Mascot.dc.html",
-    "States.dc.html"
+    "States.dc.html",
+    "ModelRouter.dc.html",
+    "OrchestraLight.dc.html",
+    "Palette.dc.html",
+    "ModelRouterLight.dc.html"
   ],
-  "pages": [],
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Orchestra"
+    },
+    {
+      "id": "page-2",
+      "name": "Model Router"
+    }
+  ],
   "title": "Orchestra Desk"
 }

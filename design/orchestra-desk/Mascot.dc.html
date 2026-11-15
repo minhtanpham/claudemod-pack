@@ -40,22 +40,24 @@ body{margin:0}
 </g>
 <g class="legA" fill="{{bodyFill}}"><rect x="4" y="11" width="2" height="4"/><rect x="8" y="11" width="2" height="2"/><rect x="12" y="11" width="2" height="4"/><rect x="16" y="11" width="2" height="2"/></g>
 <g class="legB" fill="{{bodyFill}}"><rect x="4" y="11" width="2" height="2"/><rect x="8" y="11" width="2" height="4"/><rect x="12" y="11" width="2" height="2"/><rect x="16" y="11" width="2" height="4"/></g>
-<g class="zz" opacity="{{oZ}}" fill="#9b998f"><rect x="18" y="0" width="3" height="1"/><rect x="19" y="1" width="1" height="1"/><rect x="18" y="2" width="3" height="1"/></g>
+<g class="zz" opacity="{{oZ}}" fill="{{zColor}}"><rect x="18" y="0" width="3" height="1"/><rect x="19" y="1" width="1" height="1"/><rect x="18" y="2" width="3" height="1"/></g>
 </svg>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"color":{"editor":"color","default":"#d97757"},"status":{"editor":"enum","options":["running","queued","done","failed"],"default":"running"},"role":{"editor":"enum","options":["main","explore","coder","reviewer","tester"],"default":"main"},"size":{"editor":"int","default":120,"min":24,"max":240},"$preview":{"width":160,"height":140}}'>
+<script type="text/x-dc" data-dc-script data-props='{"color":{"editor":"color","default":"#d97757"},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"status":{"editor":"enum","options":["running","queued","done","failed"],"default":"running"},"role":{"editor":"enum","options":["main","explore","coder","reviewer","tester"],"default":"main"},"size":{"editor":"int","default":120,"min":24,"max":240},"$preview":{"width":160,"height":140}}'>
 class Component extends DCLogic {
   renderVals() {
     const status = this.props.status || 'running';
     const role = this.props.role || 'main';
     const color = this.props.color || '#d97757';
     const size = Number(this.props.size) || 120;
+    const light = this.props.theme === 'light';
     return {
       cls: status,
       px: size,
       py: Math.round(size * 18 / 22),
-      bodyFill: status === 'queued' ? '#5c5a55' : color,
+      bodyFill: status === 'queued' ? (light ? '#c9c7bc' : '#5c5a55') : color,
+      zColor: light ? '#6b6a63' : '#9b998f',
       oAnt: role === 'explore' ? 1 : 0,
       oHat: role === 'tester' ? 1 : 0,
       oGlass: role === 'reviewer' ? 1 : 0,

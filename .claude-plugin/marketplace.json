@@ -11,6 +11,12 @@
       "source": "./plugins/orchestra-desk",
       "description": "A to-do progress band above the prompt and a side pane with a live card per subagent.",
       "version": "0.1.0"
+    },
+    {
+      "name": "model-router",
+      "source": "./plugins/model-router",
+      "description": "Before each subagent starts, Haiku picks the cheapest model that can do its task (haiku, sonnet or opus, agent by agent); warns before anything runs on Fable; /router shows the estimated savings.",
+      "version": "0.1.0"
     }
   ]
 }

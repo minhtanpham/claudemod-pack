@@ -8,9 +8,8 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
 <style>
-body{margin:0;font-family:'Inter',system-ui,sans-serif}
+body{margin:0}
 .mascot .legB{opacity:0}
 .mascot.running .legA{animation:legA .5s steps(1) infinite}
 .mascot.running .legB{animation:legB .5s steps(1) infinite}
@@ -26,43 +25,80 @@ body{margin:0;font-family:'Inter',system-ui,sans-serif}
 @keyframes shake{0%{transform:translateX(0)}50%{transform:translateX(-1px)}}
 </style>
 </helmet>
-<div style="width: 760px; height: 620px; box-sizing: border-box; padding: 28px 32px; background: #1a1918; color: #faf9f5; display: flex; flex-direction: column; gap: 18px">
-<div style="font-size: 20px; font-weight: 700">Agent mascots: roles and states</div>
-<div style="display: grid; grid-template-columns: 140px repeat(4, minmax(0, 1fr)); gap: 12px; align-items: center">
+<div style="width: 1280px; height: 560px; box-sizing: border-box; padding: 24px; background: #e8e6dc; display: flex; gap: 20px; font-family: system-ui, sans-serif">
+<div style="flex: 1; box-sizing: border-box; background: #1a1918; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; color: #faf9f5">
+<div style="font-size: 16px; font-weight: 700">Dark</div>
+<div style="display: grid; grid-template-columns: 120px repeat(4, minmax(0, 1fr)); gap: 8px; align-items: center">
 <div></div>
-<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d97757; text-align: center">Working</div>
-<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d97757; text-align: center">Queued</div>
-<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d97757; text-align: center">Done</div>
-<div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d97757; text-align: center">Failed</div>
-<div style="font-size: 13px; font-weight: 600; color: #d6d4cb">Main agent</div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#d97757" status="running" role="main" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#d97757" status="queued" role="main" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#d97757" status="done" role="main" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#d97757" status="failed" role="main" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="font-size: 13px; font-weight: 600; color: #d6d4cb">Explore</div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#6a9bcc" status="running" role="explore" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#6a9bcc" status="queued" role="explore" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#6a9bcc" status="done" role="explore" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#6a9bcc" status="failed" role="explore" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="font-size: 13px; font-weight: 600; color: #d6d4cb">general-purpose</div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#cc9a56" status="running" role="coder" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#cc9a56" status="queued" role="coder" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#cc9a56" status="done" role="coder" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#cc9a56" status="failed" role="coder" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="font-size: 13px; font-weight: 600; color: #d6d4cb">code-reviewer</div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#c46686" status="running" role="reviewer" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#c46686" status="queued" role="reviewer" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#c46686" status="done" role="reviewer" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#c46686" status="failed" role="reviewer" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="font-size: 13px; font-weight: 600; color: #d6d4cb">test-runner</div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#8fa874" status="running" role="tester" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#8fa874" status="queued" role="tester" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#8fa874" status="done" role="tester" size="56" hint-size="56px,46px"></dc-import></div>
-<div style="height: 84px; border-radius: 12px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" color="#8fa874" status="failed" role="tester" size="56" hint-size="56px,46px"></dc-import></div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d97757; text-align: center">Working</div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d97757; text-align: center">Queued</div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d97757; text-align: center">Done</div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d97757; text-align: center">Failed</div>
+<div style="font-size: 12px; font-weight: 600; color: #a8a69e">Main agent</div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#d97757" status="running" role="main" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#d97757" status="queued" role="main" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#d97757" status="done" role="main" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#d97757" status="failed" role="main" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="font-size: 12px; font-weight: 600; color: #a8a69e">Explore</div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#6a9bcc" status="running" role="explore" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#6a9bcc" status="queued" role="explore" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#6a9bcc" status="done" role="explore" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#6a9bcc" status="failed" role="explore" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="font-size: 12px; font-weight: 600; color: #a8a69e">general-purpose</div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#a79bd6" status="running" role="coder" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#a79bd6" status="queued" role="coder" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#a79bd6" status="done" role="coder" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#a79bd6" status="failed" role="coder" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="font-size: 12px; font-weight: 600; color: #a8a69e">code-reviewer</div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#d4789a" status="running" role="reviewer" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#d4789a" status="queued" role="reviewer" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#d4789a" status="done" role="reviewer" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#d4789a" status="failed" role="reviewer" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="font-size: 12px; font-weight: 600; color: #a8a69e">test-runner</div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#6a9bcc" status="running" role="tester" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#6a9bcc" status="queued" role="tester" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#6a9bcc" status="done" role="tester" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #262624; border: 1px solid #3a3935; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="dark" color="#6a9bcc" status="failed" role="tester" size="40" hint-size="40px,33px"></dc-import></div>
+</div>
+</div>
+<div style="flex: 1; box-sizing: border-box; background: #faf9f5; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; color: #141413">
+<div style="font-size: 16px; font-weight: 700">Light</div>
+<div style="display: grid; grid-template-columns: 120px repeat(4, minmax(0, 1fr)); gap: 8px; align-items: center">
+<div></div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #b5502f; text-align: center">Working</div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #b5502f; text-align: center">Queued</div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #b5502f; text-align: center">Done</div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #b5502f; text-align: center">Failed</div>
+<div style="font-size: 12px; font-weight: 600; color: #5f5e58">Main agent</div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#c8643f" status="running" role="main" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#c8643f" status="queued" role="main" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#c8643f" status="done" role="main" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#c8643f" status="failed" role="main" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="font-size: 12px; font-weight: 600; color: #5f5e58">Explore</div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#2f6fa3" status="running" role="explore" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#2f6fa3" status="queued" role="explore" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#2f6fa3" status="done" role="explore" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#2f6fa3" status="failed" role="explore" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="font-size: 12px; font-weight: 600; color: #5f5e58">general-purpose</div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#6d5fb5" status="running" role="coder" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#6d5fb5" status="queued" role="coder" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#6d5fb5" status="done" role="coder" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#6d5fb5" status="failed" role="coder" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="font-size: 12px; font-weight: 600; color: #5f5e58">code-reviewer</div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#b23f68" status="running" role="reviewer" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#b23f68" status="queued" role="reviewer" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#b23f68" status="done" role="reviewer" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#b23f68" status="failed" role="reviewer" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="font-size: 12px; font-weight: 600; color: #5f5e58">test-runner</div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#2f6fa3" status="running" role="tester" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#2f6fa3" status="queued" role="tester" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#2f6fa3" status="done" role="tester" size="40" hint-size="40px,33px"></dc-import></div>
+<div style="height: 62px; border-radius: 10px; background: #ffffff; border: 1px solid #dedbd0; display: flex; align-items: center; justify-content: center"><dc-import name="Mascot" theme="light" color="#2f6fa3" status="failed" role="tester" size="40" hint-size="40px,33px"></dc-import></div>
+</div>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":760,"height":620}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":560}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

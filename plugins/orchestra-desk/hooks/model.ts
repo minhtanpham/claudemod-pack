@@ -471,16 +471,18 @@ export const mainCard = (
   main: OrchestraMain,
   at: number,
   started: number,
+  isBusy: boolean,
 ): CardView => {
   const progress = progressOf(steps)
   const running = countRunning(agents)
   const isOver = isPlanOver(steps, agents)
+  const isIdle = !isBusy && running === 0
 
   return {
     id: 'main',
     name: 'Main agent',
     role: 'main',
-    status: isOver ? 'done' : 'running',
+    status: isIdle ? (isOver ? 'done' : 'stopped') : isOver ? 'done' : 'running',
     task: isOver
       ? steps.length > 0
         ? 'All steps done'
@@ -488,9 +490,11 @@ export const mainCard = (
       : (progress.current?.active ?? progress.current?.text ?? 'Working'),
     line: isOver
       ? 'Plan complete'
-      : running > 0
-        ? `Coordinating ${plural(running, 'subagent')}`
-        : 'Waiting for the next step',
+      : isIdle
+        ? 'Waiting for you'
+        : running > 0
+          ? `Coordinating ${plural(running, 'subagent')}`
+          : 'Waiting for the next step',
     calls: main.tools,
     tokens: main.tokens,
     ...(started >= 0 ? { elapsedMs: Math.max(0, at - started) } : {}),
@@ -539,8 +543,9 @@ export const buildCards = (
   main: OrchestraMain,
   at: number,
   started: number,
+  isBusy: boolean,
 ): CardView[] => [
-  mainCard(steps, agents, main, at, started),
+  mainCard(steps, agents, main, at, started, isBusy),
   ...sortAgents(agents).map(agent => subCard(agent, at)),
 ]
 
@@ -563,6 +568,7 @@ export const bandOf = (
   main: OrchestraMain,
   at: number,
   started: number,
+  isBusy: boolean,
 ): BandView => {
   const progress = progressOf(steps)
   const live = steps.filter(step => step.status === 'in_progress')
@@ -583,7 +589,7 @@ export const bandOf = (
           : 'Starting'
         : head + (live.length > 1 ? ` +${live.length - 1}` : ''),
     isFinished: progress.isFinished && running === 0,
-    working: running + (isOver ? 0 : 1),
+    working: running + (isOver || !isBusy ? 0 : 1),
     tokens,
     cost: estimateCost(tokens),
     elapsedMs: started >= 0 ? Math.max(0, at - started) : 0,

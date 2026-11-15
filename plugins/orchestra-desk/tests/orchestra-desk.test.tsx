@@ -18,7 +18,7 @@ import {
   stepTool,
   toolLabel,
 } from '../hooks/model'
-import { barSegments, base64, mascotCells } from '../hooks/mascot'
+import { barSegments, barSvg, base64, mascotCells, mascotSvg } from '../hooks/mascot'
 
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
 
@@ -324,4 +324,44 @@ test('/orchestra demo fail ends with a failed card', async ($, on) => {
   const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect(await pane.find({ type: 'Text', text: /^Failed$/ })).toBeDefined()
   await pane.unmount()
+})
+
+test('a finished turn stops "working", and a new prompt clears the old plan', async ($, on) => {
+  on('tool.call', () => ({ result: {} }))
+  on('turn.complete', (_, e) => ({ text: e.answer }))
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  mock.clock(on)
+
+  await $.tool.call({ tool: 'TodoWrite', todos: TODOS })
+  let band = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await band.find({ type: 'Button', text: /1 working/ })).toBeDefined()
+  await band.unmount()
+
+  await $.turn.complete({
+    answer: 'Need your choice',
+    durationMs: 1,
+    isAborted: false,
+    turnId: 'u1',
+    reason: 'answer',
+  })
+  band = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await band.find({ type: 'Button', text: /working/ })).toBeUndefined()
+  expect((await band.find({ type: 'Text', text: /1\/3/ }))?.text).toBe('1/3')
+  await band.unmount()
+
+  await $.prompt.submit({ text: 'something else', wait: false, origin: { kind: 'composer' } })
+  const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await pane.find({ type: 'Text', text: /No subagents yet/ })).toBeDefined()
+  await pane.unmount()
+})
+
+test('the sprites follow the surface\'s light or dark mode', () => {
+  const queued = mascotSvg('reviewer', 'queued', '#6a9bcc', 30)
+  expect(queued).toContain('prefers-color-scheme:dark')
+  // The neutral parts are classes the media query swaps, not a fixed dark hex.
+  expect(queued).toContain('class="sleep"')
+  expect(queued).toContain('class="accS"')
+  expect(barSvg(['done', 'run', 'wait'], 120)).toContain('prefers-color-scheme:dark')
+  // The terminal's cells use mid tones: no near-white or near-black accessory.
+  expect(mascotCells('explore', 'queued', '#d97757', 0).length).toBeGreaterThan(0)
 })

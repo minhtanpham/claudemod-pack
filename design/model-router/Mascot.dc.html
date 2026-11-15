@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pixel agent mascot</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.mascot .legB{opacity:0}
+.mascot.running .legA{animation:legA .5s steps(1) infinite}
+.mascot.running .legB{animation:legB .5s steps(1) infinite}
+.mascot.running .bob{animation:bob .5s steps(1) infinite}
+.mascot.running .eye{animation:blink 3.2s infinite;transform-box:fill-box;transform-origin:center}
+.mascot.queued .zz{animation:zz 1.6s steps(1) infinite}
+.mascot.failed .bob{animation:shake .4s steps(1) 3}
+@keyframes legA{0%{opacity:1}50%{opacity:0}}
+@keyframes legB{0%{opacity:0}50%{opacity:1}}
+@keyframes bob{0%{transform:translateY(0)}50%{transform:translateY(-1px)}}
+@keyframes blink{0%,90%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes zz{0%{opacity:1}50%{opacity:.25}}
+@keyframes shake{0%{transform:translateX(0)}50%{transform:translateX(-1px)}}
+</style>
+</helmet>
+<div style="display: block; flex: none; width: {{px}}px; height: {{py}}px">
+<svg viewBox="0 0 22 18" width="100%" shape-rendering="crispEdges" aria-hidden="true" class="mascot {{cls}}" style="display: block; width: {{px}}px; height: {{py}}px; overflow: visible">
+<g class="bob">
+<g opacity="{{oAnt}}"><rect x="10" y="1" width="2" height="2" fill="#faf9f5"/><rect x="9" y="0" width="4" height="1" fill="#faf9f5"/></g>
+<g opacity="{{oHat}}"><rect x="5" y="1" width="12" height="2" fill="#e8c36a"/><rect x="8" y="0" width="6" height="1" fill="#e8c36a"/></g>
+<rect x="3" y="3" width="16" height="8" fill="{{bodyFill}}"/>
+<rect x="0" y="6" width="3" height="3" fill="{{bodyFill}}"/>
+<rect x="19" y="6" width="3" height="3" fill="{{bodyFill}}"/>
+<g opacity="{{oEyeN}}"><rect class="eye" x="6" y="5" width="2" height="3" fill="#1a1918"/><rect class="eye" x="14" y="5" width="2" height="3" fill="#1a1918"/></g>
+<g opacity="{{oEyeH}}"><rect x="6" y="6" width="2" height="1" fill="#1a1918"/><rect x="14" y="6" width="2" height="1" fill="#1a1918"/></g>
+<g opacity="{{oEyeX}}"><path d="M6 5l2 3M8 5l-2 3M14 5l2 3M16 5l-2 3" stroke="#1a1918" stroke-width="0.9" fill="none"/></g>
+<g opacity="{{oGlass}}"><rect x="5" y="4" width="4" height="5" fill="none" stroke="#faf9f5" stroke-width="0.7"/><rect x="13" y="4" width="4" height="5" fill="none" stroke="#faf9f5" stroke-width="0.7"/><rect x="9" y="6" width="4" height="0.7" fill="#faf9f5"/></g>
+</g>
+<g class="legA" fill="{{bodyFill}}"><rect x="4" y="11" width="2" height="4"/><rect x="8" y="11" width="2" height="2"/><rect x="12" y="11" width="2" height="4"/><rect x="16" y="11" width="2" height="2"/></g>
+<g class="legB" fill="{{bodyFill}}"><rect x="4" y="11" width="2" height="2"/><rect x="8" y="11" width="2" height="4"/><rect x="12" y="11" width="2" height="2"/><rect x="16" y="11" width="2" height="4"/></g>
+<g class="zz" opacity="{{oZ}}" fill="{{zColor}}"><rect x="18" y="0" width="3" height="1"/><rect x="19" y="1" width="1" height="1"/><rect x="18" y="2" width="3" height="1"/></g>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"color":{"editor":"color","default":"#d97757"},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"status":{"editor":"enum","options":["running","queued","done","failed"],"default":"running"},"role":{"editor":"enum","options":["main","explore","coder","reviewer","tester"],"default":"main"},"size":{"editor":"int","default":120,"min":24,"max":240},"$preview":{"width":160,"height":140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const status = this.props.status || 'running';
+    const role = this.props.role || 'main';
+    const color = this.props.color || '#d97757';
+    const size = Number(this.props.size) || 120;
+    const light = this.props.theme === 'light';
+    return {
+      cls: status,
+      px: size,
+      py: Math.round(size * 18 / 22),
+      bodyFill: status === 'queued' ? (light ? '#c9c7bc' : '#5c5a55') : color,
+      zColor: light ? '#6b6a63' : '#9b998f',
+      oAnt: role === 'explore' ? 1 : 0,
+      oHat: role === 'tester' ? 1 : 0,
+      oGlass: role === 'reviewer' ? 1 : 0,
+      oEyeN: (status === 'running' || status === 'queued') ? 1 : 0,
+      oEyeH: status === 'done' ? 1 : 0,
+      oEyeX: status === 'failed' ? 1 : 0,
+      oZ: status === 'queued' ? 1 : 0
+    };
+  }
+}
+</script>
+</body>
+</html>
