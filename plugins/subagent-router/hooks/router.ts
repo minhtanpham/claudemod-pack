@@ -68,6 +68,20 @@ export function capTier(want: Tier, parent: Tier, ceiling: Ceiling): Tier {
 }
 
 /** Agents that edit code never run below Sonnet. */
+/** Usage mode: save (cheapest that fits), strong (one tier up), cap (never above the session model). */
+export type UsageMode = 'save' | 'strong' | 'cap'
+export const USAGE: readonly { id: UsageMode; name: string; desc: string }[] = [
+  { id: 'cap', name: 'Cap at current model', desc: 'Never above the session model, so routing only saves. Fable never asks on a lower session.' },
+  { id: 'save', name: 'Save', desc: 'Cheapest model that fits each agent, Sonnet floor for code edits, Fable always asks first.' },
+  { id: 'strong', name: 'Strong', desc: 'One tier up for each agent: code edits to Opus, reviews to Fable, which asks first. Smaller saving.' },
+]
+export const bumpTier = (t: Tier, edits: boolean, role: string): Tier => {
+  const up = TIERS[Math.min(TIERS.length - 1, rank(t) + 1)]!
+  if (edits && rank(up) < rank('opus')) return 'opus'
+
+  return role === 'reviewer' && rank(up) < rank('fable') && rank(t) >= rank('opus') ? 'fable' : up
+}
+
 export const floorTier = (t: Tier, edits: boolean): Tier =>
   edits && rank(t) < rank('sonnet') ? 'sonnet' : t
 
@@ -167,11 +181,18 @@ export const FABLE_OPTIONS = [USE_FABLE, USE_OPUS, CANCEL] as const
 /** The dialog's chip (12 characters at most). */
 export const FABLE_HEADER = 'Fable needed'
 
+/** True when the router cost more than leaving every agent on the session model. */
+export const isLoss = (t: Totals): boolean => t.saved < -0.0005
+
+/** "~$0.12 saved" or "costs ~$0.21 more". */
+export const savingText = (t: Totals): string =>
+  isLoss(t) ? `costs ~${money(-t.saved)} more` : `~${money(Math.max(0, t.saved))} saved`
+
 /** The status line under the prompt (design/cli 03, 04). */
 export function statusLine(t: Totals, isWaiting: boolean): string {
   return isWaiting
     ? 'waiting for your OK'
-    : `~${money(Math.max(0, t.saved))} saved (${t.pct}%)`
+    : `${savingText(t)} (${isLoss(t) ? '+' : ''}${Math.abs(t.pct)}%)`
 }
 
 // --------------------------------------------------------------- usage --
@@ -250,8 +271,8 @@ export function totals(entries: readonly RouterEntry[], overhead: number): Total
     if (x.isMeasured) measured++
   }
   const total = spent + overhead
-  // Never negative: a router that costs more than it saves shows $0.
-  const saved = Math.max(0, baseline - total)
+  // Signed: a router that picks dearer models than the session's shows a loss, not $0.
+  const saved = baseline - total
 
   return {
     agents: entries.length - cancelled,
@@ -262,7 +283,7 @@ export function totals(entries: readonly RouterEntry[], overhead: number): Total
     overhead,
     total,
     saved,
-    pct: baseline > 0 ? Math.round((Math.max(0, saved) / baseline) * 100) : 0,
+    pct: baseline > 0 ? Math.round((saved / baseline) * 100) : 0,
     byTier,
     segments,
   }
@@ -284,7 +305,7 @@ export function report(t: Totals, isOff: boolean, mode: string): string {
   return [
     `subagent-router is ${state}: ${t.agents} subagents routed (${mix || 'none'})${t.cancelled ? `, ${t.cancelled} cancelled` : ''}.`,
     `Without the router (every agent on the session model): ~${money(t.baseline)}. With it: ~${money(t.total)}, including ${money(t.overhead)} for the Haiku reviews.`,
-    `Estimated saving: ~${money(Math.max(0, t.saved))} (${t.pct}%). ${t.measured}/${t.agents} use real token counts; the rest are estimates split 80% input, 20% output.`,
+    `${isLoss(t) ? 'Estimated extra cost' : 'Estimated saving'}: ${isLoss(t) ? `~${money(-t.saved)} more (+${Math.abs(t.pct)}%)` : `~${money(Math.max(0, t.saved))} (${t.pct}%)`}. ${t.measured}/${t.agents} use real token counts; the rest are estimates split 80% input, 20% output.`,
     'List prices; it ignores retries a cheaper model may need.',
   ].join('\n')
 }

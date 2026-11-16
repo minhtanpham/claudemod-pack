@@ -56,6 +56,21 @@ export type AgentDeckMain = {
   tokens: number
 }
 
+/** What Model Router publishes as `{ plugin: 'subagent-router', key: 'summary' }`; read only. */
+export type RouterSummary = {
+  routed: number
+  saved: number
+  pct: number
+  isLoss: boolean
+  /** `~$3.40 saved`, or `costs ~$0.20 more`. */
+  label: string
+  /** Agents waiting for the person's OK (Fable). */
+  waiting: number
+  waitingName: string
+  mode: 'save' | 'strong' | 'cap'
+  groups: { tier: 'haiku' | 'sonnet' | 'opus' | 'fable'; n: number; cost: number; pct: number; waits: number }[]
+}
+
 declare module 'claude-code' {
   interface PluginState {
     'agent-deck': {
@@ -71,6 +86,12 @@ declare module 'claude-code' {
       started: Shaped<number>
       /** Whether the main agent is in a turn now. */
       busy: Shaped<boolean>
+      /** The Router section of the pane is open. */
+      routerOpen: Shaped<boolean>
+    }
+    /** Another mod's value: any plugin reads any value, only its owner writes it. */
+    'subagent-router': {
+      summary: RouterSummary | null
     }
   }
 }

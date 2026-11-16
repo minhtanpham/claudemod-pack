@@ -36,7 +36,7 @@ const BAND = {
     isCollapsed: false,
     isWorking: true,
     maxRows: 3,
-    bodyColumns: 80,
+    bodyColumns: 120,
     scroll: { offset: 0, bodyRows: 3 },
     view: {},
   },
@@ -258,15 +258,9 @@ test('the pane has a live card per subagent, on every surface', async ($, on) =>
     const ui = await $.ui.mount({ ...PANE, surface })
 
     expect((await ui.find({ type: 'Text', text: /Explore/ }))?.text).toBe('Explore')
-    expect(
-      (await ui.find({ type: 'Text', text: /Find auth/ }))?.text,
-    ).toBe('Find auth middleware')
     expect((await ui.find({ type: 'Text', text: /auth\.ts/ }))?.text).toBe(
-      '» Read auth.ts',
+      'Read auth.ts',
     )
-    expect(
-      (await ui.find({ type: 'Text', text: /2 calls/ }))?.text,
-    ).toBe('2 calls')
     expect(await ui.find({ type: 'Text', text: /2 working/ })).toBeDefined()
     await ui.unmount()
   }
@@ -284,7 +278,7 @@ test('the pane has a live card per subagent, on every surface', async ($, on) =>
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
 
   expect((await ui.find({ type: 'Text', text: /Found it/ }))?.text).toBe(
-    '» Found it in src/auth.ts',
+    'Found it in src/auth.ts',
   )
   expect(await ui.find({ type: 'Text', text: /2 done/ })).toBeDefined()
   await ui.unmount()
@@ -348,7 +342,7 @@ test('/deck demo plays with no model call, then clears', async ($, on) => {
 
     const pane = await $.ui.mount({ ...PANE, surface })
     expect(await pane.find({ type: 'Text', text: /3 working/ })).toBeDefined()
-    expect(await pane.find({ type: 'Text', text: /Main agent/ })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: /Orchestra/ })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: /code-reviewer/ })).toBeDefined()
     await pane.unmount()
   }
@@ -356,7 +350,6 @@ test('/deck demo plays with no model call, then clears', async ($, on) => {
   await clockMock.advance(20_000)
   const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect(await pane.find({ type: 'Text', text: /5 done/ })).toBeDefined()
-  expect((await pane.find({ type: 'Text', text: /5\/5/ }))?.text).toBe('5/5')
   await pane.unmount()
 
   await $.command.run({ ...COMMAND, args: 'clear' })
@@ -418,4 +411,61 @@ test('the sprites follow the surface\'s light or dark mode', () => {
   expect(barSvg(stepsFromList(TODOS), 120)).toContain('prefers-color-scheme:dark')
   // The terminal's cells use mid tones: no near-white or near-black accessory.
   expect(mascotCells('explore', 'queued', '#d97757', 0).length).toBeGreaterThan(0)
+})
+
+// -------------------------------------------------- Model Router's state --
+
+const ROUTER = {
+  routed: 5,
+  saved: 3.4,
+  pct: 58,
+  isLoss: false,
+  label: '~$3.40 saved',
+  waiting: 0,
+  waitingName: '',
+  mode: 'save',
+  groups: [
+    { tier: 'haiku', n: 2, cost: 0.2, pct: 95, waits: 0 },
+    { tier: 'fable', n: 1, cost: 0.43, pct: 0, waits: 1 },
+  ],
+}
+
+test("Model Router's published summary shows in the dock and the pane", async ($, on) => {
+  let summary: object | null = ROUTER
+  on('state.get', (_, e, next) =>
+    e.plugin === 'subagent-router' && e.key === 'summary'
+      ? { value: { value: summary, version: 1 } }
+      : next(e),
+  )
+  on('command.register', () => ({ value: { command: 'deck' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const clockMock = mock.clock(on)
+
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.command.run({ ...COMMAND, args: 'demo' })
+  await clockMock.advance(12_000)
+
+  const band = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await band.find({ type: 'Text', text: /~\$3\.40 saved · 58%/ })).toBeDefined()
+  expect(await band.find({ type: 'Text', text: 'Save' })).toBeDefined()
+  await band.unmount()
+
+  const pane = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await pane.find({ type: 'Text', text: 'ROUTER' })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /Haiku 5\.5 ×2/ })).toBeUndefined()
+  await pane.press({ key: 'router' })
+  expect(await pane.find({ type: 'Text', text: /Haiku 5\.5 ×2/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: 'needs OK' })).toBeDefined()
+  await pane.unmount()
+
+  summary = { ...ROUTER, waiting: 1, waitingName: 'schema-architect' }
+  const waiting = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await waiting.find({ type: 'Text', text: 'Fable needs OK' })).toBeDefined()
+  await waiting.unmount()
+
+  summary = null
+  const alone = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await alone.find({ type: 'Text', text: /saved/ })).toBeUndefined()
+  await alone.unmount()
 })

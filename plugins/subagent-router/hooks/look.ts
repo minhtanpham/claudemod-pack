@@ -26,6 +26,7 @@ export const C = {
   accText: ['#b5502f', '#d97757'],
   success: ['#2f7a3e', '#8cc08a'],
   successBg: ['#e6f3e8', '#1f2a20'],
+  clayBg: ['#f8e6de', '#33231d'],
 } as const satisfies Record<string, readonly [string, string]>
 
 export type Token = keyof typeof C
@@ -242,19 +243,31 @@ export const readingSvg = (): string =>
 // ------------------------------------------------------------ saved pill --
 
 export const PILL_HEIGHT = 20
+/** The pill's canvas: a row is taller than the pill, so it sits 5px down inside it. */
+export const PILL_BOX = 30
 export const pillWidth = (text: string): number => Math.ceil(20 + text.length * BOLD12)
 
 /** "$1.12 saved": success text on its tint, a full pill. */
-export const savedPillSvg = (text: string): string => {
+export const savedPillSvg = (text: string, isLoss = false): string => {
+  const [fg, bg] = isLoss ? (['clay', 'clayBg'] as const) : (['success', 'successBg'] as const)
   const w = pillWidth(text)
 
   return svg(
     w,
-    PILL_HEIGHT,
-    `<style>${palette(['success', 'successBg'])}text{font:700 12px ${SANS};font-variant-numeric:tabular-nums}</style>` +
-      `<rect width="${w}" height="${PILL_HEIGHT}" rx="${PILL_HEIGHT / 2}" class="f-successBg"/>` +
-      `<text x="${w / 2}" y="14" text-anchor="middle" class="f-success">${esc(text)}</text>`,
+    PILL_BOX,
+    `<style>${palette([fg, bg])}text{font:700 12px ${SANS};font-variant-numeric:tabular-nums}</style>` +
+      `<rect y="5" width="${w}" height="${PILL_HEIGHT}" rx="${PILL_HEIGHT / 2}" class="f-${bg}"/>` +
+      `<text x="${w / 2}" y="19" text-anchor="middle" class="f-${fg}">${esc(text)}</text>`,
   )
+}
+
+// ------------------------------------------------------------- hairline --
+
+/** The 1px rule between the dock's two rows (design/combined-dock `borderSoft`). */
+export const hairSvg = (width: number): string => {
+  const w = Math.max(8, Math.round(width))
+
+  return svg(w, 1, `<style>${palette(['track'])}</style><rect width="${w}" height="1" class="f-track"/>`)
 }
 
 // ------------------------------------------------------------------ bars --

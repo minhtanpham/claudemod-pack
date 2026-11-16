@@ -58,13 +58,47 @@ declare module 'claude-code' {
       /** Turned off with `/router off`. */
       isOff: Shaped<boolean>
       /** The routing band's body is shown. */
-      isOpen: Shaped<boolean>
+      isOpen: Shaped<'auto' | 'open' | 'closed'>
+      /** Usage mode: save, strong or cap at the session model. */
+      usage: Shaped<'save' | 'strong' | 'cap'>
       mode: Shaped<RouterMode>
       pick: Shaped<RouterPick>
       /** When `/router demo` began (ms); -1 when none plays. */
       demo: Shaped<number>
       /** Wall clock in ms, ticked while the router works (for the terminal's frames). */
       now: Shaped<number>
+      /** What other mods read: the saving, the wait for an OK, the mode, the rows by model. */
+      summary: RouterSummary | null
     }
   }
+}
+
+/** One model's row in the summary: agents on it, what they cost, what they saved. */
+export type RouterGroup = {
+  tier: Tier
+  /** Agents on this model, those still waiting for an OK included. */
+  n: number
+  cost: number
+  /** Saved against the session model, in percent; negative when it costs more. */
+  pct: number
+  /** How many of them wait for the person's OK (Fable). */
+  waits: number
+}
+
+/**
+ * What this mod publishes as `{ plugin: 'subagent-router', key: 'summary' }`
+ * for other mods to read (Orchestra Desk draws it in its dock and pane).
+ * `null` while the router has routed nothing.
+ */
+export type RouterSummary = {
+  routed: number
+  saved: number
+  pct: number
+  isLoss: boolean
+  /** `~$3.40 saved`, or `costs ~$0.20 more`. */
+  label: string
+  waiting: number
+  waitingName: string
+  mode: 'save' | 'strong' | 'cap'
+  groups: RouterGroup[]
 }

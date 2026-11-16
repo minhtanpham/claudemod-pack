@@ -188,7 +188,7 @@ export const terminalPane = (
 
   return (
     <Box flexDirection="column" gap={1}>
-      <Text bold>Agent Deck</Text>
+      <Text bold>Orchestra</Text>
 
       {steps.length > 0 && (
         <Box flexDirection="column">

@@ -28,7 +28,8 @@ Each mod is a Claude Code plugin with a hooks module: JavaScript/TypeScript that
 
 - **Per-agent choice:** Haiku 5.5 reads each subagent's type, title and prompt and picks haiku, sonnet, opus or fable for that agent. Code-editing agents never go below Sonnet.
 - **Fable asks first:** you choose Fable, Opus instead, or cancel the agent.
-- **Saving estimate:** the band shows what each agent costs, the total saved against running everything on the session model, and `/router` gives the detail. The cost of each agent is measured from its real token counts once it finishes. The "all on Fable" side is not: that agent never ran there, so it assumes the same tokens at Fable's price. That is why the saving shows as "~$X". In the demo, five agents cost $1.89 all on Fable and $0.76 routed: ~$1.12 saved (60%). While Fable waits for your OK, that agent is left out of both sides, so the band reads "so far" (~$1.12, 77%).
+- **Saving vs upgrade:** by default (Usage mode Cap) the router never picks a model above your session's, so it only saves. Opt in to upgrades with `/router mode save` or `strong`; when that costs more, the band shows *costs \~$X more* instead of hiding it.
+- **Saving estimate:** the band shows what each agent costs, the total saved against running everything on the session model, and `/router` gives the detail. The cost of each agent is measured from its real token counts once it finishes. The "all on Fable" side is not: that agent never ran there, so it assumes the same tokens at Fable's price. That is why the saving shows as "\~$X". In the demo, five agents cost $1.89 all on Fable and $0.76 routed: \~$1.12 saved (60%). While Fable waits for your OK, that agent is left out of both sides, so the band reads "so far" (\~$1.12, 77%).
 - **Review modes:** every spawn, each prompt, or once per session.
 - **Safe by default:** if the router fails, the agent keeps the session model. It never blocks a spawn.
 

@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { Hook, Register } from 'claude-code'
 
-import type { AgentDeckRole, AgentDeckAgentStatus } from '../types'
+import type { AgentDeckRole, AgentDeckAgentStatus, RouterSummary } from '../types'
 
 import {
   addAgent,
@@ -21,7 +21,6 @@ import {
   isDemoId,
   kfmt,
   money,
-  plural,
   progressOf,
   reduceSteps,
   MODEL_COLOR,
@@ -42,19 +41,21 @@ import { terminalBand, terminalPane } from './terminal'
 import {
   bandGlyph,
   barSegments,
-  badgeSvg,
   barSvg,
-  progressSvg,
-  chipSvg,
-  tileSvg,
-  CELL_COLUMNS,
   planIconSvg,
-  CELL_ROWS,
-  mascotCells,
   mascotSvg,
 } from './mascot'
 
 const PANE = 'agent-deck'
+
+// Model Router's published summary (read only, empty while that mod is absent
+// or has routed nothing) and the colors it draws each model in, so both mods
+// show a model the same way.
+const router = atom({ plugin: 'subagent-router', key: 'summary' } as const, null as RouterSummary | null)
+const routerOpen = atom({ plugin: 'agent-deck', key: 'routerOpen' } as const, false, { shape: 'routerOpen-1' })
+const TIER_THEME = { haiku: 'ide', sonnet: 'merged', opus: 'planMode', fable: 'claude' } as const
+const TIER_LABEL = { haiku: 'Haiku 5.5', sonnet: 'Sonnet 5.5', opus: 'Opus 5.5', fable: 'Fable 5.2' } as const
+const MODE_LABEL = { save: 'Save', strong: 'Strong', cap: 'Cap' } as const
 const TITLE = 'Agent Deck'
 // The dock's width request: a narrow side column. A width the person dragged wins.
 const DOCK_COLUMNS = 40
@@ -379,6 +380,7 @@ export const register: Register = (on, options) => {
     const at = await read($, now)
     const since = await read($, started)
     const isBusy = await read($, busy)
+    const rt = await read($, router)
     if (list.length === 0 && cards.length === 0) return next(e)
 
     const T = $.ui.resolve(e)
@@ -393,8 +395,11 @@ export const register: Register = (on, options) => {
     const status: AgentDeckAgentStatus = band.isFinished ? 'done' : 'running'
     const segments = barSegments(list)
     const columns = Math.max(20, e.props.bodyColumns)
-    const room = Math.max(8, columns - 48)
-    const barWidth = Math.min(1600, Math.max(120, Math.round(columns * 9.2 - 40)))
+    const isNarrow = columns < 70
+    // Tight: the row keeps its stats on one line by dropping tokens and the mode.
+    const isTight = columns < 100
+    const room = isTight ? 0 : Math.max(8, Math.min(24, columns - 60))
+    const barWidth = Math.min(1600, Math.max(80, Math.round(columns * 9.2 - 640)))
 
     const mascot =
       'Svg' in T ? (
@@ -402,7 +407,7 @@ export const register: Register = (on, options) => {
           source={mascotSvg('main', status, modelKey(mainModel), 30)}
           alt="Agent Deck mascot"
           width={30}
-          height={24}
+          height={25}
           isInteractive
         />
       ) : (
@@ -434,59 +439,69 @@ export const register: Register = (on, options) => {
         </Box>
       )
 
+    // design/combined-dock row 1: one line, mascot, n/total, current step,
+    // the progress bar filling the middle, N working, tokens, cost and time.
     return (
-      <Box flexDirection="column" gap={1} paddingY={0}>
-        <Box flexDirection="row" justifyContent="space-between" alignItems="center" paddingY={0}>
-          <Box flexDirection="row" gap={2} alignItems="center">
-            {mascot}
-            {list.length > 0 && (
-              <Box flexDirection="row" alignItems="flex-end">
-                <Text color="claude" size="title" weight="bold" tabular>
-                  {band.done}
-                </Text>
-                <Text dimColor weight="bold" tabular>
-                  /{band.total}
-                </Text>
-              </Box>
-            )}
-            <Text bold wrap="truncate">
-              {clip(band.label, room)}
+      <Box flexDirection="row" gap={2} alignItems="center">
+        {mascot}
+        {list.length > 0 && (
+          <Box flexDirection="row" alignItems="flex-end">
+            <Text color="claude" size="title" weight="bold" tabular>
+              {band.done}
+            </Text>
+            <Text dimColor weight="bold" tabular>
+              /{band.total}
             </Text>
           </Box>
+        )}
+        {!isTight && (
+          <Text bold wrap="truncate">
+            {clip(band.label, room)}
+          </Text>
+        )}
+        <Box flexGrow={1}>{list.length > 0 && bar}</Box>
+        {band.working > 0 ? (
+          <Button
+            key="agents"
+            plain
+            label={`${band.working} working`}
+            onPress={async () => {
+              await $.ui.open({
+                id: PANE,
+                title: TITLE,
+                columns: DOCK_COLUMNS,
+              })
+            }}
+          />
+        ) : (
+          <Text color="claude" bold>
+            Finished
+          </Text>
+        )}
+        <Text dimColor mono tabular size="footnote" wrap="truncate">
+          {isTight ? '' : `${kfmt(band.tokens)} tok · `}
+          {money(band.cost)} · {clock(band.elapsedMs)}
+        </Text>
+        {rt && (
           <Box flexDirection="row" gap={2} alignItems="center">
-            {band.working > 0 ? (
-              <Box paddingX={1}>
-                <Button
-                  key="agents"
-                  plain
-                  label={`${band.working} working`}
-                  onPress={async () => {
-                    await $.ui.open({
-                      id: PANE,
-                      title: TITLE,
-                      columns: DOCK_COLUMNS,
-                    })
-                  }}
-                />
-              </Box>
-            ) : (
-              <Box paddingX={1}>
-                <Text color="claude" bold>
-                  Finished
-                </Text>
-              </Box>
+            <Text dimColor>│</Text>
+            <Text color={rt.waiting > 0 ? 'claude' : 'ide'}>●</Text>
+            <Text color={rt.waiting > 0 || rt.isLoss ? 'claude' : 'success'} bold tabular wrap="truncate">
+              {rt.waiting > 0
+                ? rt.waiting === 1
+                  ? 'Fable needs OK'
+                  : `${rt.waiting} need OK`
+                : isNarrow
+                  ? `$${rt.saved.toFixed(2)}`
+                  : `${rt.label}${rt.pct > 0 && !rt.isLoss ? ` · ${rt.pct}%` : ''}`}
+            </Text>
+            {!isTight && (
+              <Text dimColor size="footnote">
+                {MODE_LABEL[rt.mode]}
+              </Text>
             )}
-            <Box flexDirection="column" alignItems="flex-end">
-              <Text dimColor mono tabular size="footnote">
-                {kfmt(band.tokens)} tok
-              </Text>
-              <Text dimColor mono tabular size="footnote">
-                {money(band.cost)} · {clock(band.elapsedMs)}
-              </Text>
-            </Box>
           </Box>
-        </Box>
-        {list.length > 0 && bar}
+        )}
       </Box>
     )
   })
@@ -495,13 +510,15 @@ export const register: Register = (on, options) => {
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const T = $.ui.resolve(e)
-    const { Box, Text, Button, Progress } = T
+    const { Box, Text, Button } = T
     const list = await read($, steps)
     const subs = await read($, agents)
     const m = await read($, main)
     const at = await read($, now)
     const since = await read($, started)
     const isBusy = await read($, busy)
+    const rt = await read($, router)
+    const isRouterOpen = await read($, routerOpen)
     const progress = progressOf(list)
     const columns = Math.max(16, e.props.bodyColumns)
     const inner = columns - 4
@@ -553,85 +570,104 @@ export const register: Register = (on, options) => {
       )
     }
 
-    const sprite = (
-      role: AgentDeckRole,
-      status: AgentDeckAgentStatus,
-      model: ReturnType<typeof modelKey>,
-      id: string,
-    ) =>
-      'Svg' in T ? (
-        <T.Svg
-          source={tileSvg(role, status, model)}
-          alt={`${role} mascot, ${status}`}
-          width={64}
-          height={64}
-          isInteractive
-        />
-      ) : (
-        <T.Raster
-          key={`sprite-${id}`}
-          columns={CELL_COLUMNS}
-          rows={CELL_ROWS}
-          cells={mascotCells(role, status, MODEL_COLOR[model].dark, frame)}
-        />
-      )
+    // design/combined-dock: ONE merged step list. Done = a tick row with its
+    // time, running = a bold title with its agents under it (mascot, name,
+    // model, one status line, clay rail), queued = a dim row.
+    const isRich = 'Svg' in T
+    const subCards = cards.filter(one => one.role !== 'main')
+    const running = subCards.filter(one => one.status === 'running')
+    const ended = subCards.filter(one => one.status !== 'running')
+    const textRoom = Math.max(8, columns - 12)
 
-    return (
-      <Box flexDirection="column" gap={1}>
-        {list.length > 0 && (
-          <Box flexDirection="column">
-            <Box flexDirection="row" gap={1}>
-              <Text color="claude" bold>
-                PLAN
+    const agentRow = (card: (typeof subCards)[number]) => {
+      const isLive = card.status === 'running'
+      const color = STATUS_COLOR[card.status]
+      const model = MODEL_COLOR[card.modelKey].dark
+
+      return (
+        <Box key={`agent-${card.id}`} flexDirection="row" gap={1} alignItems="center">
+          <Text color={isLive ? 'claude' : 'inactive'} dimColor={!isLive}>
+            │
+          </Text>
+          {isRich ? (
+            <T.Svg
+              source={mascotSvg(card.role, card.status, card.modelKey, 30)}
+              alt={`${card.role} mascot, ${card.status}`}
+              width={30}
+              height={25}
+              isInteractive
+            />
+          ) : (
+            <Text color={model}>●</Text>
+          )}
+          <Box flexDirection="column" flexGrow={1}>
+            <Box flexDirection="row" gap={1} alignItems="flex-start">
+              <Text bold wrap="truncate" dimColor={!isLive}>
+                {clip(card.name, Math.max(10, textRoom - 14))}
               </Text>
-              <Text bold tabular>
-                {progress.done}/{progress.total}
+              <Text color={model} weight="semibold" size="footnote">
+                {card.model}
+              </Text>
+              {!isLive && (
+                <Text color={color} size="footnote" weight="semibold">
+                  {statusWord(card.status)}
+                </Text>
+              )}
+              <Box flexGrow={1} />
+              <Text dimColor mono tabular size="footnote">
+                {card.elapsedMs === undefined ? '–' : elapsed(card.elapsedMs)}
               </Text>
             </Box>
-            {list.map(step => (
-              <Box flexDirection="row" gap={1} alignItems="center">
-                {'Svg' in T ? (
-                  <T.Svg
-                    source={planIconSvg(step.status)}
-                    alt={step.status}
-                    width={16}
-                    height={16}
-                    isInteractive
-                  />
-                ) : (
-                  <Text
-                    color={step.status === 'pending' ? 'inactive' : 'claude'}
-                    dimColor={step.status === 'completed'}
-                  >
-                    {step.status === 'completed'
-                      ? '✓'
-                      : step.status === 'in_progress'
-                        ? SPIN[frame % SPIN.length]
-                        : '○'}
-                  </Text>
-                )}
-                <Text
-                  bold={step.status === 'in_progress'}
-                  weight={step.status === 'in_progress' ? 'bold' : 'medium'}
-                  dimColor={step.status === 'pending'}
-                  wrap="truncate"
-                >
-                  {clip(step.text, columns - 4)}
-                </Text>
-              </Box>
-            ))}
+            {card.line !== '' && (
+              <Text dimColor mono size="footnote" wrap="truncate">
+                {clip(card.line, textRoom)}
+              </Text>
+            )}
+            {card.isOpenable && (
+              <Button
+                key={`view-${card.id}`}
+                plain
+                dimColor
+                label="Transcript"
+                onPress={async () => {
+                  await $.ui.view({ agentId: card.id })
+                }}
+              />
+            )}
           </Box>
-        )}
+        </Box>
+      )
+    }
 
-        <Box flexDirection="row" gap={1}>
-          <Text color="claude" bold>
-            AGENTS
+    const icon = (status: (typeof list)[number]['status']) =>
+      isRich ? (
+        <T.Svg source={planIconSvg(status)} alt={status} width={16} height={16} isInteractive />
+      ) : (
+        <Text color={status === 'pending' ? 'inactive' : 'claude'}>
+          {status === 'completed' ? '✓' : status === 'in_progress' ? SPIN[frame % SPIN.length] : '○'}
+        </Text>
+      )
+
+    // The agents sit under the first step in progress; with no plan, alone.
+    const host = list.findIndex(step => step.status === 'in_progress')
+
+    return (
+      <Box flexDirection="column" gap={2}>
+        <Box flexDirection="row" gap={2} alignItems="center">
+          <Text color={counts.working > 0 ? 'claude' : 'inactive'}>●</Text>
+          <Text bold weight="bold" size="title">
+            Orchestra
           </Text>
-          {tally !== '' && <Text dimColor>{tally}</Text>}
+          <Box flexGrow={1} />
+          {tally !== '' && (
+            <Text dimColor size="footnote">
+              {tally}
+            </Text>
+          )}
         </Box>
 
         {isEmpty && (
-          <Text dimColor>No subagents yet. Each one Claude starts gets a live card here.</Text>
+          <Text dimColor>No subagents yet. Each one Claude starts shows up here.</Text>
         )}
         {isEmpty && (
           <Button
@@ -644,144 +680,86 @@ export const register: Register = (on, options) => {
           />
         )}
 
-        {cards.map(card => {
-          const isLive = card.status === 'running'
-          const isQueued = card.status === 'queued'
-          const color = STATUS_COLOR[card.status]
-
-          const isRich = 'Svg' in T
-          const textWidth = Math.max(8, columns - (isRich ? 15 : 16))
-          const badgeWidth = statusWord(card.status).length + 2
-          const timeWidth = card.elapsedMs === undefined ? 1 : elapsed(card.elapsedMs).length
-          const nameWidth = Math.max(4, textWidth - badgeWidth - timeWidth - 2)
-
-          return (
-            <Box
-              flexDirection="row"
-              gap={1}
-              borderStyle="round"
-              borderColor={isLive ? 'claude' : 'inactive'}
-              borderDimColor={!isLive}
-              paddingX={1}
-              width="100%"
-            >
-              {sprite(card.role, card.status, card.modelKey, card.id)}
-              <Box flexDirection="column" flexGrow={1}>
-                <Box flexDirection="row" gap={1} alignItems="center" width="100%">
-                  <Text bold wrap="truncate">
-                    {clip(card.name, nameWidth)}
-                  </Text>
-                  {isRich ? (
-                    <T.Svg
-                      key={`badge-${card.status}`}
-                      source={badgeSvg(card.status, statusWord(card.status))}
-                      alt={statusWord(card.status)}
-                      width={Math.ceil(16 + statusWord(card.status).length * 6.6)}
-                      height={18}
-                      isInteractive
-                    />
-                  ) : (
-                    <Box backgroundColor={STATUS_BG[card.status]} paddingX={1}>
-                      <Text color={color} bold>
-                        {statusWord(card.status)}
-                      </Text>
-                    </Box>
-                  )}
-                  <Box flexGrow={1} />
-                  <Text dimColor mono tabular>
-                    {card.elapsedMs === undefined ? '–' : elapsed(card.elapsedMs)}
-                  </Text>
-                </Box>
-                {card.task !== '' && (
-                  <Text dimColor={isQueued} wrap="truncate">
-                    {clip(card.task, textWidth)}
-                  </Text>
-                )}
-                {card.line !== '' && (
-                  <Text dimColor={!isLive} mono wrap="truncate">
-                    {clip(`» ${card.line}`, textWidth)}
-                  </Text>
-                )}
-                <Box flexDirection="row" gap={1} alignItems="center">
-                  <Text dimColor tabular size="caption">
-                    {plural(card.calls, 'call')}
-                  </Text>
-                  <Text dimColor tabular size="caption">
-                    {kfmt(card.tokens)} tok
-                  </Text>
-                  {'Svg' in T ? (
-                    <T.Svg
-                      source={chipSvg(card.modelKey, card.model)}
-                      alt={`Model ${card.model}`}
-                      width={Math.ceil(14 + card.model.length * 6.4)}
-                      height={16}
-                      isInteractive
-                    />
-                  ) : (
-                    <Text color={MODEL_COLOR[card.modelKey].dark} weight="semibold">
-                      ● {card.model}
-                    </Text>
-                  )}
-                  {card.isOpenable ? (
-                    <Button
-                      key={`view-${card.id}`}
-                      plain
-                      dimColor={!isLive}
-                      label="Transcript"
-                      onPress={async () => {
-                        await $.ui.view({ agentId: card.id })
-                      }}
-                    />
-                  ) : (
-                    <Text dimColor underline size="caption">
-                      Transcript
-                    </Text>
-                  )}
-                </Box>
-                {isLive &&
-                  ('Svg' in T ? (
-                    <Box flexDirection="row" gap={1} alignItems="center">
-                      <T.Svg
-                        source={progressSvg(
-                          card.modelKey,
-                          Math.max(80, Math.min(520, Math.round(textWidth * 6.2))),
-                          ...growth(card.id, card.progress),
-                        )}
-                        alt={`${card.name} progress ${Math.round(card.progress * 100)}%`}
-                        width={Math.max(80, Math.min(520, Math.round(textWidth * 6.2)))}
-                        height={14}
-                        isInteractive
-                      />
-                      <Text dimColor tabular size="caption">
-                        {Math.round(card.progress * 100)}%
-                      </Text>
-                    </Box>
-                  ) : (
-                    <Progress
-                      label={`${card.name} progress`}
-                      value={card.progress}
-                      max={1}
-                      color={MODEL_COLOR[card.modelKey].dark}
-                    />
-                  ))}
+        <Box flexDirection="column" gap={1}>
+          {list.map((step, i) => (
+            <Box key={`step-${i}`} flexDirection="column">
+              <Box flexDirection="row" gap={2} alignItems="center">
+                {icon(step.status)}
+                <Text
+                  bold={step.status === 'in_progress'}
+                  weight={step.status === 'in_progress' ? 'bold' : 'medium'}
+                  dimColor={step.status === 'pending'}
+                  wrap="truncate"
+                >
+                  {clip(step.text, columns - 8)}
+                </Text>
               </Box>
+              {i === host && running.map(agentRow)}
             </Box>
-          )
-        })}
+          ))}
+          {host < 0 && running.map(agentRow)}
+          {ended.map(agentRow)}
+        </Box>
+
+        {rt && (
+          <Box flexDirection="column" gap={2}>
+            <Text dimColor wrap="truncate">
+              {'─'.repeat(Math.max(4, columns - 4))}
+            </Text>
+            <Box flexDirection="row" gap={2} alignItems="center">
+              <Text color={rt.waiting > 0 ? 'claude' : 'ide'}>●</Text>
+              <Text dimColor bold size="footnote">
+                ROUTER
+              </Text>
+              <Text color={rt.waiting > 0 || rt.isLoss ? 'claude' : 'success'} bold tabular>
+                {rt.waiting > 0
+                ? rt.waiting === 1
+                  ? 'Fable needs OK'
+                  : `${rt.waiting} need OK`
+                : `${rt.label}${rt.pct > 0 && !rt.isLoss ? ` · ${rt.pct}%` : ''}`}
+              </Text>
+              <Box flexGrow={1} />
+              <Text dimColor size="footnote">
+                Mode: {MODE_LABEL[rt.mode]}
+              </Text>
+              <Button
+                key="router"
+                plain
+                label={isRouterOpen ? '▴' : '▾'}
+                onPress={async () => {
+                  await update($, routerOpen, v => !v)
+                }}
+              />
+            </Box>
+            {isRouterOpen &&
+              rt.groups.map(g => (
+                <Box key={`rt-${g.tier}`} paddingLeft={1} flexDirection="row" gap={2} alignItems="center">
+                  <Text color={g.waits > 0 ? 'claude' : TIER_THEME[g.tier]}>●</Text>
+                  <Text bold weight="semibold">
+                    {TIER_LABEL[g.tier]} ×{g.n}
+                  </Text>
+                  <Box flexGrow={1} />
+                  {g.waits > 0 ? (
+                    <Text color="claude" bold size="footnote">
+                      needs OK
+                    </Text>
+                  ) : (
+                    <Box flexDirection="row" gap={2}>
+                      <Text tabular size="footnote">
+                        {money(g.cost)}
+                      </Text>
+                      <Text color={g.pct > 0 ? 'success' : 'claude'} tabular size="footnote">
+                        {g.pct > 0 ? `−${g.pct}%` : g.pct < 0 ? `+${-g.pct}%` : 'no change'}
+                      </Text>
+                    </Box>
+                  )}
+                </Box>
+              ))}
+          </Box>
+        )}
       </Box>
     )
   })
-}
-
-/** Per card: where its bar was and where it is, so a bar that grew eases from the old width. */
-const bars = new Map<string, { from: number; to: number }>()
-const growth = (id: string, value: number): [number, number] => {
-  const seen = bars.get(id)
-  if (!seen) bars.set(id, { from: 0, to: value })
-  else if (seen.to !== value) bars.set(id, { from: seen.to, to: value })
-  const now = bars.get(id)!
-
-  return [now.from, now.to]
 }
 
 /** The model the main agent runs on: the demo's while it shows, else the session's. */
